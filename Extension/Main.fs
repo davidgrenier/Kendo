@@ -5,7 +5,6 @@ open IntelliFactory.WebSharper
 module Definition =
     open IntelliFactory.WebSharper.InterfaceGenerator
 
-
     let TabStrip =
         Class "kendo.ui.TabStrip"
         |+> [Constructor T<obj>]
@@ -132,32 +131,29 @@ module Definition =
                 "dataItem" => T<obj> ^-> t
             ]
 
-//    let data =
-//        Class "kendo.data"
-//        |=> Nested [
-//            Generic - DataSourceConfiguration
-//            Generic - DataSource
-//        ]
-//        |> WithSourceName "Data"
-
-    let kendoRes name file =
+    let kResource name file =
         sprintf "http://cdn.kendostatic.com/2013.2.918/%s" file
         |> Resource name
 
-    let KendoAPI = kendoRes "KendoAPI" "js/kendo.web.min.js"
-    let commonCSS = kendoRes "Common" "styles/kendo.common.min.css"
+    let KendoAPI = kResource "KendoAPI" "js/kendo.web.min.js"
+    let ThemeCommon = kResource "ThemeCommon" "styles/kendo.common.min.css"
+// Replace the above two with this to reproduce
+//    let KendoAPI =
+//        Resources "KendoAPI" "http://cdn.kendostatic.com/2013.2.918/" [
+//            "js/kendo.web.min.js"
+//            "styles/kendo.common.min.css"
+//        ]
     let Jquery = Resource "Jquery" "http://code.jquery.com/jquery-1.9.1.min.js"
 
-    let kendo =
+    let Kendo =
         Class "kendo"
         |+> ["culture" => T<string> ^-> T<unit>]
-//        |=> Nested [data]
         |> WithSourceName "Kendo"
-        |> Requires [Jquery; KendoAPI; commonCSS]
+        |> Requires [Jquery; KendoAPI; ThemeCommon]
 
     let Assembly =
         Assembly [
-            Namespace "Kendo" [kendo]
+            Namespace "Kendo" [Kendo]
             Namespace "Kendo.UI" [
                 Attributes
                 TabStrip
@@ -172,13 +168,13 @@ module Definition =
             ]
             Namespace "Kendo.Resources" [Jquery; KendoAPI]
             Namespace "Kendo.Resources.Culture" [
-                commonCSS
-                kendoRes "English" "js/cultures/kendo.culture.en-CA.min.js"
-                kendoRes "French" "js/cultures/kendo.culture.fr-CA.min.js"
+                ThemeCommon
+                kResource "English" "js/cultures/kendo.culture.en-CA.min.js"
+                kResource "French" "js/cultures/kendo.culture.fr-CA.min.js"
             ]
             Namespace "Kendo.Resources.Themes" [
-                kendoRes "Default" "styles/kendo.default.min.css"
-                kendoRes "Silver" "styles/kendo.silver.min.css"
+                kResource "Default" "styles/kendo.default.min.css"
+                kResource "Silver" "styles/kendo.silver.min.css"
             ]
         ]
 
