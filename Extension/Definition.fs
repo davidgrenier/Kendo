@@ -9,12 +9,6 @@ module Definition =
         Class "kendo.ui.TabStrip"
         |+> [Constructor T<obj>]
 
-    let ColumnValue =
-        Pattern.Config "kendo.ui.ColumnValue" {
-            Required = ["text", T<string>; "value", T<obj>]
-            Optional = []
-        }
-
     let Model =
         let model = Type.New()
         Pattern.Config "kendo.ui.Model" {
@@ -22,26 +16,12 @@ module Definition =
             Optional = ["id", T<string>]
         }
         |=> model
-        |+> [
-            "define" => T<obj> ^-> model
-        ]
+        |+> ["define" => T<obj> ^-> model]
 
     let Schema =
         Pattern.Config "kendo.ui.Schema" {
             Required = ["model", Model.Type]
             Optional = []
-        }
-
-    let ColumnConfigurationOptions =
-        Pattern.Config "kendo.ui.ColumnsConfiguration.Options" {
-            Required = []
-            Optional =
-                [
-                    "field", T<string>
-                    "format", T<string>
-                    "model", T<obj>
-                    "values", Type.ArrayOf ColumnValue
-                ]
         }
 
     let Attributes =
@@ -50,27 +30,34 @@ module Definition =
             Optional = []
         }
 
-    let ColumnsConfiguration =
-        Pattern.Config "kendo.ui.ColumnsConfiguration" {
-            Required = []
-            Optional =
-                [
-                    "field", T<string>
-                    "title", T<string>
-                    "command", T<obj>
-                    "editor", T<obj> * ColumnConfigurationOptions ^-> T<unit>
-                    "filterable", T<bool>
-                    "format", T<string>
-                    "sortable", T<bool>
-                    "template", T<string>
-                    "width", T<int>
-                    "attributes", Attributes.Type
-                ]
+    let Command =
+        Pattern.Config "kendo.ui.Command" {
+            Required = ["name", T<string>; "click", T<obj>]
+            Optional = []
         }
 
-    let DataSourceConfiguration =
+    let Column =
         Generic / fun t ->
-            Pattern.Config "kendo.data.DataSourceConfiguration" {
+            Pattern.Config "kendo.ui.Column" {
+                Required = []
+                Optional =
+                    [
+                        "field", T<string>
+                        "title", T<string>
+                        "command", Command.Type
+    //                    "editor", T<obj> * ColumnConfigurationOptions ^-> T<unit>
+                        "filterable", T<bool>
+                        "format", T<string>
+                        "sortable", T<bool>
+                        "template", t ^-> T<string>
+                        "width", T<int>
+                        "attributes", Attributes.Type
+                    ]
+            }
+
+    let DataSource =
+        Generic / fun t ->
+            Pattern.Config "kendo.data.DataSource" {
                 Required = []
                 Optional =
                     [
@@ -86,45 +73,33 @@ module Definition =
                     ]
             }
 
-    let DataSource =
-        Generic / fun t ->
-            Class "kendo.data.DataSource"
-            |+> [
-                    Constructor T<unit>
-                    Constructor (DataSourceConfiguration t)
-            ]
-
     let GridConfiguration =
-        Pattern.Config "kendo.ui.GridConfiguration" {
-            Required = []
-            Optional =
-                [
-                    "scrollable", T<bool>
-                    "sortable", T<bool>
-                    "columns", Type.ArrayOf ColumnsConfiguration
-                    "dataSource", T<obj>
-                    "selectable", T<string>
-                    "change", T<obj -> unit>
-                    "resizable", T<bool>
-                    "filterable", T<bool>
-                    "reorderable", T<bool>
-                    "editable", T<bool>
-                    "groupable", T<bool>
-                    "pageable", T<obj>
-                ]
-        }
-        |=> Nested [
-            ColumnConfigurationOptions
-            ColumnsConfiguration
-            ColumnValue
-        ]
+        Generic / fun t ->
+            Pattern.Config "kendo.ui.GridConfiguration" {
+                Required = []
+                Optional =
+                    [
+                        "columns", Type.ArrayOf (Column t)
+                        "dataSource", (DataSource t).Type
+                        "selectable", T<string>
+                        "change", T<obj -> unit>
+                        "resizable", T<bool>
+                        "filterable", T<bool>
+                        "reorderable", T<bool>
+                        "editable", T<bool>
+                        "groupable", T<bool>
+                        "scrollable", T<bool>
+                        "sortable", T<bool>
+                        "pageable", T<obj>
+                    ]
+            }
 
     let Grid =
         Generic / fun t ->
             Class "kendo.ui.Grid"
             |+> [
                 Constructor T<obj>
-                Constructor (T<obj> * GridConfiguration)
+                Constructor (T<obj> * GridConfiguration t)
             ]
             |+> Protocol [
                 "select" => T<unit> ^-> T<obj>
@@ -137,17 +112,14 @@ module Definition =
 
     let KendoAPI = kResource "KendoAPI" "js/kendo.web.min.js"
     let ThemeCommon = kResource "ThemeCommon" "styles/kendo.common.min.css"
-// Replace the above two with this to reproduce
-//    let KendoAPI =
-//        Resources "KendoAPI" "http://cdn.kendostatic.com/2013.2.918/" [
-//            "js/kendo.web.min.js"
-//            "styles/kendo.common.min.css"
-//        ]
     let Jquery = Resource "Jquery" "http://code.jquery.com/jquery-1.9.1.min.js"
 
     let Kendo =
         Class "kendo"
-        |+> ["culture" => T<string> ^-> T<unit>]
+        |+> [
+            "culture" => T<string> ^-> T<unit>
+            "toString" => T<obj> * T<string> ^-> T<string>
+        ]
         |> WithSourceName "Kendo"
         |> Requires [Jquery; KendoAPI; ThemeCommon]
 
@@ -157,16 +129,26 @@ module Definition =
             Namespace "Kendo.UI" [
                 Attributes
                 TabStrip
-                Generic - Grid
-                GridConfiguration
+                Command
                 Model
                 Schema
+                Generic - Column
+                Generic - GridConfiguration
+                Generic - Grid
             ]
             Namespace "Kendo.Data" [
-                Generic - DataSourceConfiguration
                 Generic - DataSource
             ]
-            Namespace "Kendo.Resources" [Jquery; KendoAPI]
+            Namespace "Kendo.Resources" [
+                Jquery
+                KendoAPI
+            ]
+//            Namespace "Fails" [
+//                Resources "KAPI" "http://cdn.kendostatic.com/2013.2.918/" [
+//                    "js/kendo.web.min.js"
+//                    "styles/kendo.common.min.css"
+//                ]
+//            ]
             Namespace "Kendo.Resources.Culture" [
                 ThemeCommon
                 kResource "English" "js/cultures/kendo.culture.en-CA.min.js"

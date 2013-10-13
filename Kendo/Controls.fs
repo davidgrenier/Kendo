@@ -40,7 +40,6 @@ module Tabs =
         )
 
 type Action<'T> = 'T -> unit
-type OnGrid<'T, 'U> = (Grid<'T> -> 'U) -> 'U
 
 module Schema =
     type T =
@@ -54,7 +53,7 @@ module Schema =
     let asNumber schema = { schema with ``type`` = "number" }
     let asDate schema = { schema with ``type`` = "date" }
 
-    let build (schemas: (string * T) seq) =
+    let create (schemas: (string * T) seq) =
         schemas
         |> Seq.fold (fun schema (fieldName, fieldSchema) ->
             (?<-) schema fieldName fieldSchema
@@ -62,23 +61,21 @@ module Schema =
         ) (obj())
 
 module Column =
-    type Field =
+    type Field<'T> =
         {
             Field: string
             Title: string
             Width: int option
             Attributes: Attributes option
             Format: string option
-            Template: string option
+            Template: ('T -> string) option
             Schema: Schema.T
         }
 
     type T<'T> =
-        | Field of Field
+        | Field of Field<'T>
         | CommandButton of string * ('T -> unit)
 
-    type CommandButton = { text: string; click: obj -> unit }
-        
     let field name title =
         Field {
             Field = name
@@ -90,6 +87,8 @@ module Column =
             Schema = Schema.readonly
         }
 
+    let command label action = CommandButton (label, action)
+
     let mapField f = function
         | Field c -> Field (f c)
         | CommandButton _ as c -> c
@@ -97,9 +96,14 @@ module Column =
     let withWidth width = mapField (fun c -> { c with Width = Some width })
     let withClass className = mapField (fun c -> { c with Attributes = Some (Attributes className) })
     let withFormat fmt = mapField (fun c -> { c with Format = Some fmt })
-    let withTemplate template = mapField (fun c -> { c with Template = Some template })
-    let asNumeric x = withClass "gridNumericValue" x
-    let asCurrency x = asNumeric x |> withFormat "{0:c}"
+    
+    let private formatWithf templateFunc = mapField (fun c -> { c with Template = Some (templateFunc c) })
+    let formatWith templateFunc = mapField (fun c -> { c with Template = Some templateFunc })
+    let shortDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "d")) x
+    let longDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "D")) x
+
+    let numericFormat x = withClass "gridNumericValue" x
+    let currencyFormat x = numericFormat x |> withFormat "{0:c}"
 
     let applySchema f = mapField (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
@@ -110,10 +114,10 @@ module Column =
         JQuery.JQuery.Of(o?currentTarget : Dom.Node).Closest("TR").Get(0)
         |> grid.DataItem
 
-    let fromMapping (onGrid: OnGrid<_, _>) =
+    let fromMapping onGrid =
         function
         | Field f ->
-            GridConfiguration.ColumnsConfiguration(Field = f.Field, Title = f.Title)
+            Column(Field = f.Field, Title = f.Title)
             |>! fun column ->
                 f.Attributes |> Option.iter (fun attrib -> column.Attributes <- attrib)
                 f.Width |> Option.iter (fun width -> column.Width <- width)
@@ -122,7 +126,7 @@ module Column =
 
         | CommandButton (text, action) ->
             let click (e: obj) = onGrid (getValueFromButtonEvent e >> action)
-            GridConfiguration.ColumnsConfiguration(Command = { text = text; click = click })
+            Column(Command = Command(text, click))
 
 module Grid =
     type Selectable<'T> =
@@ -196,11 +200,15 @@ module Grid =
 
     type Pageable = { pageSizes: bool }
 
-    let buildConfig (onGrid: OnGrid<_, _>) dataSource config columns =
+    let buildConfig onGrid config dataSource =
+        let columns =
+            config.Columns
+            |> Seq.map (Column.fromMapping onGrid)
+            |> Seq.toArray
         GridConfiguration (
+            Columns = columns,
             Scrollable = config.Scrollable,
             Sortable = config.Sortable,
-            Columns = columns,
             DataSource = dataSource,
             Resizable = config.Resizable,
             Filterable = config.Filterable,
@@ -224,31 +232,25 @@ module Grid =
                 gconf.Change <- fun _ -> onGrid (actOnRow action)
             )
 
-    let renderData (config: T<'T>) (data: 'T seq) =
+    let renderData config data =
         let grid = ref None
         let onGrid f = !grid |> Option.iter f
+        
+        let schema =
+            config.Columns
+            |> Seq.choose (function
+                | Column.CommandButton _ -> None
+                | Column.Field field -> Some (field.Field, field.Schema)
+            )
+            |> Schema.create
 
-        let dataSourceConfig =
-            let schema =
-                config.Columns
-                |> Seq.choose (function
-                    | Column.CommandButton _ -> None
-                    | Column.Field field -> Some (field.Field, field.Schema)
-                )
-                |> Schema.build
-            DataSourceConfiguration (
+        let gridConfig =
+            Data.DataSource(
                 Data = Seq.toArray data,
                 PageSize = pageSize config.Paging,
                 Schema = Schema(Model(schema, Id = "Name"))
             )
-
-        let dataSource = DataSource dataSourceConfig
-
-        let gridConfig =
-            config.Columns
-            |> Seq.map (Column.fromMapping onGrid)
-            |> Seq.toArray
-            |> buildConfig onGrid dataSource config
+            |> buildConfig onGrid config
 
         Div []
         |>! fun el -> grid := Grid(el.Body, gridConfig) |> Some

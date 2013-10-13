@@ -22,14 +22,6 @@ type Philosopher =
                 Died = p.Died.ToEcma()
             }
 
-type Schema =
-    {
-        Name: Schema.T
-        LastName: Schema.T
-        Age: Schema.T
-        HireDate: Schema.T
-    }
-
 let grid =
     Grid.Default [
         Column.field "Name" "Name"
@@ -37,8 +29,9 @@ let grid =
         Column.field "Age" "Age"
         |> Column.asNumber |> Column.editable
         Column.field "Died" "Died On"
-        |> Column.withTemplate "#= kendo.toString(new Date(Died), 'd') #"
+        |> Column.shortDateFormat
         |> Column.asDate |> Column.editable
+        Column.command "test" (Json.Stringify >> JavaScript.Alert)
     ]
     |> Grid.withPaging 3
     |> Grid.withPageSizer
