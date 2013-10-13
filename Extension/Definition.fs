@@ -154,16 +154,16 @@ module Definition =
             ]
             Namespace "Kendo.Dependencies" [
                 Jquery
-                KendoAPI
+//                KendoAPI
             ]
-//            Namespace "Fails" [
-//                Resources "KAPI" "http://cdn.kendostatic.com/2013.2.918/" [
-//                    "js/kendo.web.min.js"
-//                    "styles/kendo.common.min.css"
-//                ]
-//            ]
+            Namespace "Fails" [
+                Resources "KAPI" "http://cdn.kendostatic.com/2013.2.918/" [
+                    "js/kendo.web.min.js"
+                    "styles/kendo.common.min.css"
+                ]
+            ]
             Namespace "Kendo.Culture" [
-                ThemeCommon
+//                ThemeCommon
                 kResource "English" "js/cultures/kendo.culture.en-CA.min.js"
                 kResource "French" "js/cultures/kendo.culture.fr-CA.min.js"
             ]
