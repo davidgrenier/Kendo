@@ -73,6 +73,16 @@ module Definition =
                     ]
             }
 
+    let ToolButton =
+        Pattern.Config "kendo.ui.ToolbarElement" {
+            Required = []
+            Optional =
+                [
+                    "template", T<obj> //T<unit> ^-> T<obj>
+                    "name", T<string>
+                ]
+        }
+
     let GridConfiguration =
         Generic / fun t ->
             Pattern.Config "kendo.ui.GridConfiguration" {
@@ -91,6 +101,7 @@ module Definition =
                         "scrollable", T<bool>
                         "sortable", T<bool>
                         "pageable", T<obj>
+                        "toolbar", Type.ArrayOf ToolButton
                     ]
             }
 
@@ -118,6 +129,7 @@ module Definition =
         Class "kendo"
         |+> [
             "culture" => T<string> ^-> T<unit>
+            "template" => T<string> ^-> T<obj>
             "toString" => T<obj> * T<string> ^-> T<string>
         ]
         |> WithSourceName "Kendo"
@@ -125,21 +137,22 @@ module Definition =
 
     let Assembly =
         Assembly [
-            Namespace "Kendo" [Kendo]
+            Namespace "Kendo" [
+                Generic - DataSource
+                Kendo
+            ]
             Namespace "Kendo.UI" [
                 Attributes
                 TabStrip
                 Command
                 Model
                 Schema
+                ToolButton
                 Generic - Column
                 Generic - GridConfiguration
                 Generic - Grid
             ]
-            Namespace "Kendo.Data" [
-                Generic - DataSource
-            ]
-            Namespace "Kendo.Resources" [
+            Namespace "Kendo.Dependencies" [
                 Jquery
                 KendoAPI
             ]
@@ -149,12 +162,12 @@ module Definition =
 //                    "styles/kendo.common.min.css"
 //                ]
 //            ]
-            Namespace "Kendo.Resources.Culture" [
+            Namespace "Kendo.Culture" [
                 ThemeCommon
                 kResource "English" "js/cultures/kendo.culture.en-CA.min.js"
                 kResource "French" "js/cultures/kendo.culture.fr-CA.min.js"
             ]
-            Namespace "Kendo.Resources.Themes" [
+            Namespace "Kendo.Themes" [
                 kResource "Default" "styles/kendo.default.min.css"
                 kResource "Silver" "styles/kendo.silver.min.css"
             ]

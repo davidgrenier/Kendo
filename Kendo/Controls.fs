@@ -137,6 +137,11 @@ module Grid =
         | Paging of int
         | WithSizer of int
 
+    type BuiltInButton = Create
+    type ToolButton =
+        | BuiltIn of BuiltInButton
+        | Template of (unit -> Element)
+
     type T<'T> =
         {
             Paging: Paging option
@@ -148,6 +153,7 @@ module Grid =
             Reorderable: bool
             Filterable: bool
             Grouping: bool
+            ToolButtons: ToolButton list
         }
 
     let defaultPaging = Some (Paging 10)
@@ -166,6 +172,7 @@ module Grid =
                 Reorderable = false
                 Filterable = false
                 Grouping = false
+                ToolButtons = []
             }
 
     let withGrouping gridConfig = { gridConfig with Grouping = true }
@@ -175,6 +182,8 @@ module Grid =
     let withoutPaging gridConfig = { gridConfig with Paging = None }
     let withRowSelect action gridConfig = { gridConfig with Selectable = Some (Row action) }
     let withCellSelect action gridConfig = { gridConfig with Selectable = Some (Cell action) }
+    let withCreate gridConfig = { gridConfig with ToolButtons = BuiltIn Create :: gridConfig.ToolButtons }
+    let withToolButton f gridConfig = { gridConfig with ToolButtons = Template f :: gridConfig.ToolButtons }
 
     let withPaging x gridConfig =
         {
@@ -205,6 +214,7 @@ module Grid =
             config.Columns
             |> Seq.map (Column.fromMapping onGrid)
             |> Seq.toArray
+
         GridConfiguration (
             Columns = columns,
             Scrollable = config.Scrollable,
@@ -232,6 +242,21 @@ module Grid =
                 gconf.Change <- fun _ -> onGrid (actOnRow action)
             )
 
+            match config.ToolButtons with
+            | [] -> ()
+            | xs ->
+                gconf.Toolbar <-
+                    config.ToolButtons
+                    |> List.map (function
+                        | BuiltIn Create ->
+                            ToolbarElement(Name = "create")
+                        | Template f ->
+                            ToolbarElement(
+                                Template = Kendo.Template(f().Html)
+                            )
+                    )
+                    |> List.toArray
+
     let renderData config data =
         let grid = ref None
         let onGrid f = !grid |> Option.iter f
@@ -245,7 +270,7 @@ module Grid =
             |> Schema.create
 
         let gridConfig =
-            Data.DataSource(
+            DataSource(
                 Data = Seq.toArray data,
                 PageSize = pageSize config.Paging,
                 Schema = Schema(Model(schema, Id = "Name"))

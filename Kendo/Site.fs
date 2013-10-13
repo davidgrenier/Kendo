@@ -4,8 +4,6 @@ open IntelliFactory.Html
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Sitelets
 
-open Kendo.Resources
-
 type Action =
     | [<CompiledName "">] EN
     | FR

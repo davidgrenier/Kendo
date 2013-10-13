@@ -39,6 +39,8 @@ let grid =
     |> Grid.withFiltering
     |> Grid.withColumnResizing
     |> Grid.withReordering
+    |> Grid.withCreate
+    |> Grid.withToolButton (fun () -> Button [Text "test"] |>! OnClick (fun _ _ -> JavaScript.Alert "test"))
     |> Grid.renderData
 
 let page() =
