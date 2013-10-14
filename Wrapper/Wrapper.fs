@@ -9,17 +9,9 @@ open WebSharper.Kendo.Extension
 open WebSharper.Kendo.Extension.UI
 
 module Tabs =
-    type T =
-        {
-            Name: string
-            Content: unit -> Element
-        }
+    type T = { Name: string; Content: unit -> Element }
 
-    let create name content =
-        {
-            Name = name
-            Content = content
-        }
+    let create name content = { Name = name; Content = content }
 
     let createTabs tabs =
         if List.isEmpty tabs then
@@ -34,9 +26,8 @@ module Tabs =
             ]
         ] -< (tabs |> Seq.map (fun t -> t.Content()))
         |>! OnAfterRender (fun el ->
-            let tabStrip = TabStrip el.Body
-            tabStrip?options?animation?close <- false
-            tabStrip?options?animation?``open`` <- false
+            TabStrip(el.Body, Open = false, Close = false)
+            |> ignore
         )
 
 module Schema =

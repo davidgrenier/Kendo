@@ -1,13 +1,22 @@
 namespace Extension
 
 open IntelliFactory.WebSharper
+open IntelliFactory.WebSharper.InterfaceGenerator
 
 module Definition =
-    open IntelliFactory.WebSharper.InterfaceGenerator
+    let (=@) (name: string) t =
+        let names = name.Split '.'
+        names.[names.Length - 1] =@ t
+        |> WithSetterInline (System.String.Format("void ($this.{0} = $value)", name))
+        |> WithGetterInline (System.String.Format("$this.{0}", name))
 
     let TabStrip =
         Class "kendo.ui.TabStrip"
         |+> [Constructor T<obj>]
+        |+> Protocol [
+            "options.animation.open" =@ T<bool>
+            "options.animation.close" =@ T<bool>
+        ]
 
     let FieldType =
         Pattern.Config "kendo.ui.FieldType" {
