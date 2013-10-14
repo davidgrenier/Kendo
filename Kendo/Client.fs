@@ -27,30 +27,26 @@ type Philosopher =
 let renderData =
     G.Default [
         C.field "Name" "Name"
-         |> C.width 150
+            |> C.width 150
         C.field "LastName" "Last Name"
         C.field "Age" "Age"
-         |> C.asNumber
-         |> C.editable
-         |> C.alignRight
-         |> C.width 120
+            |> C.typed Schema.Number
+            |> C.editable
+            |> C.alignRight
+            |> C.width 120
         C.field "Died" "Died On"
-         |> C.shortDateFormat
-         |> C.asDate
-         |> C.editable
-         |> C.width 150
-        C.command "Show JSON" (fun v grid ->
-            Json.Stringify v
-            |> JavaScript.Alert
-            grid.SaveRow()
-        )
-        |> C.width 140
+            |> C.shortDateFormat
+            |> C.typed Schema.Date
+            |> C.editable
+            |> C.width 150
+        C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)
+            |> C.width 140
     ]
     |> G.paging 5
-    |> G.pageSizer
+    |> G.adjustablePaging
     |> G.groupable
     |> G.filterable
-    |> G.columnResizable
+    |> G.resizableColumn
     |> G.reorderable
     |> G.addButton
     |> G.cancelButton

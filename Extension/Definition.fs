@@ -9,6 +9,12 @@ module Definition =
         Class "kendo.ui.TabStrip"
         |+> [Constructor T<obj>]
 
+    let FieldType =
+        Pattern.Config "kendo.ui.FieldType" {
+            Required = ["editable", T<bool>; "type", T<string>]
+            Optional = []
+        }
+
     let Model =
         let model = Type.New()
         Pattern.Config "kendo.ui.Model" {
@@ -147,6 +153,7 @@ module Definition =
                 TabStrip
                 Command
                 Model
+                FieldType
                 Schema
                 ToolButton
                 Generic - Column

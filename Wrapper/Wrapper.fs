@@ -39,24 +39,23 @@ module Tabs =
             tabStrip?options?animation?``open`` <- false
         )
 
-type Action<'T> = 'T -> unit
-
 module Schema =
-    type T =
-        {
-            editable: bool
-            ``type``: string
-        }
+    type Type = String | Number | Date
+    type T = { Editable: bool; Type: Type }
 
-    let readonly = { editable = false; ``type`` = "string" }
-    let editable schema = { schema with editable = true }
-    let asNumber schema = { schema with ``type`` = "number" }
-    let asDate schema = { schema with ``type`` = "date" }
+    let readonly = { Editable = false; Type = String }
+    let editable schema = { schema with Editable = true }
+    let typed typ schema = { schema with Type = typ }
 
     let create (schemas: (string * T) seq) =
         schemas
-        |> Seq.fold (fun schema (fieldName, fieldSchema) ->
-            (?<-) schema fieldName fieldSchema
+        |> Seq.fold (fun schema (fieldName, { Editable = editable; Type = typ } ) ->
+            let typ =
+                match typ with
+                | String -> "string"
+                | Number -> "number"
+                | Date -> "date"
+            (?<-) schema fieldName (FieldType(editable, typ))
             schema
         ) (obj())
 
@@ -123,8 +122,7 @@ module Column =
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
-    let asNumber c = applySchema Schema.asNumber c
-    let asDate c = applySchema Schema.asDate c
+    let typed typ = applySchema (Schema.typed typ)
 
     let fromMapping (onGrid: (Grid<_> -> _) -> _) col =
         let column =
@@ -152,8 +150,8 @@ module Column =
 
 module Grid =
     type Selectable<'T> =
-        | Row of Action<'T>
-        | Cell of Action<'T>
+        | Row of ('T -> unit)
+        | Cell of ('T -> unit)
 
     type Paging =
         | Paging of int
@@ -200,10 +198,10 @@ module Grid =
     let groupable gridConfig = { gridConfig with Groupable = true }
     let filterable gridConfig = { gridConfig with Filterable = true }
     let reorderable gridConfig = { gridConfig with Reorderable = true }
-    let columnResizable gridConfig = { gridConfig with Resizable = true }
+    let resizableColumn gridConfig = { gridConfig with Resizable = true }
     let withoutPaging gridConfig = { gridConfig with Paging = None }
-    let rowSelectable action gridConfig = { gridConfig with Selectable = Some (Row action) }
-    let cellSelectable action gridConfig = { gridConfig with Selectable = Some (Cell action) }
+    let selectableRow action gridConfig = { gridConfig with Selectable = Some (Row action) }
+    let selectableCell action gridConfig = { gridConfig with Selectable = Some (Cell action) }
     let private withToolbarButton kind gridConfig = { gridConfig with ToolButtons = kind :: gridConfig.ToolButtons }
     let addButton gridConfig = withToolbarButton (BuiltIn Create) gridConfig
     let cancelButton gridConfig = withToolbarButton (BuiltIn Cancel) gridConfig
@@ -219,7 +217,7 @@ module Grid =
                     | x, Some (Sizer _) -> Some (Sizer x)
         }
 
-    let pageSizer gridConfig =
+    let adjustablePaging gridConfig =
         {
             gridConfig with
                 Paging =
@@ -291,7 +289,7 @@ module Grid =
             DataSource(
                 Data = Seq.toArray data,
                 PageSize = pageSize config.Paging,
-                Schema = Schema(Model(schema, Id = "Name"))
+                Schema = Schema(Model schema)
             )
             |> buildConfig onGrid config
 
