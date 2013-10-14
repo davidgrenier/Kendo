@@ -4,7 +4,7 @@ module Kendo.Client
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
 
-open Kendo.Controls
+open Kendo.Wrapper
 
 type Philosopher =
     {
@@ -22,16 +22,22 @@ type Philosopher =
                 Died = p.Died.ToEcma()
             }
 
-let grid =
+let renderData =
     Grid.Default [
         Column.field "Name" "Name"
+        |> Column.withWidth 150
         Column.field "LastName" "Last Name"
         Column.field "Age" "Age"
-        |> Column.asNumber |> Column.editable
+        |> Column.asNumber
+        |> Column.editable
+        |> Column.alignRight
+        |> Column.withWidth 120
         Column.field "Died" "Died On"
         |> Column.shortDateFormat
         |> Column.asDate |> Column.editable
-        Column.command "test" (Json.Stringify >> JavaScript.Alert)
+        |> Column.withWidth 150
+        Column.command "Show JSON" (Json.Stringify >> JavaScript.Alert)
+        |> Column.withWidth 140
     ]
     |> Grid.withPaging 3
     |> Grid.withPageSizer
@@ -40,14 +46,14 @@ let grid =
     |> Grid.withColumnResizing
     |> Grid.withReordering
     |> Grid.withCreate
-    |> Grid.withToolButton (fun () -> Button [Text "test"] |>! OnClick (fun _ _ -> JavaScript.Alert "test"))
+    |> Grid.withCancel
     |> Grid.renderData
 
 let page() =
     let grid =
         Data.philosophers()
         |> Seq.map Philosopher.ofPerson
-        |> grid
+        |> renderData
     Div [
         Tabs.createTabs [
             Tabs.create "Grid" (fun () -> Div [grid])

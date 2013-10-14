@@ -32,7 +32,7 @@ module Definition =
 
     let Command =
         Pattern.Config "kendo.ui.Command" {
-            Required = ["name", T<string>; "click", T<obj>]
+            Required = ["name", T<string>; "click", T<obj> ^-> T<unit>]
             Optional = []
         }
 

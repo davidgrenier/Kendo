@@ -1,5 +1,5 @@
 ﻿[<JS>]
-module Kendo.Controls
+module Kendo.Wrapper
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
@@ -64,69 +64,88 @@ module Column =
     type Field<'T> =
         {
             Field: string
-            Title: string
-            Width: int option
-            Attributes: Attributes option
             Format: string option
             Template: ('T -> string) option
             Schema: Schema.T
         }
 
-    type T<'T> =
+    type Content<'T> =
         | Field of Field<'T>
         | CommandButton of string * ('T -> unit)
+
+    type T<'T> =
+        {
+            Title: string
+            Width: int option
+            Attributes: Attributes option
+            Content: Content<'T>
+        }
+
+    let private create title content =
+        {
+            Title = title
+            Width = None
+            Attributes = None
+            Content = content
+        }
 
     let field name title =
         Field {
             Field = name
-            Title = title
-            Width = None
-            Attributes = None
             Format = None
             Template = None
             Schema = Schema.readonly
         }
+        |> create title
 
-    let command label action = CommandButton (label, action)
+    let command label action =
+        CommandButton (label, action)
+        |> create ""
 
-    let mapField f = function
-        | Field c -> Field (f c)
-        | CommandButton _ as c -> c
+    let private mapContent f col =
+        let content = 
+            match col.Content with
+            | Field c -> Field (f c)
+            | CommandButton _ -> col.Content
+        { col with Content = content }
 
-    let withWidth width = mapField (fun c -> { c with Width = Some width })
-    let withClass className = mapField (fun c -> { c with Attributes = Some (Attributes className) })
-    let withFormat fmt = mapField (fun c -> { c with Format = Some fmt })
+    let withWidth width col = { col with Width = Some width }
+    let withClass className col = { col with Attributes = Some (Attributes className) }
     
-    let private formatWithf templateFunc = mapField (fun c -> { c with Template = Some (templateFunc c) })
-    let formatWith templateFunc = mapField (fun c -> { c with Template = Some templateFunc })
+    let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some (templateFunc c) })
+    let formatWith templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
     let shortDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "d")) x
     let longDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "D")) x
 
-    let numericFormat x = withClass "gridNumericValue" x
-    let currencyFormat x = numericFormat x |> withFormat "{0:c}"
+    let withFormat fmt = mapContent (fun c -> { c with Format = Some fmt })
+    let alignRight x = withClass "alignRight" x
+    let currencyFormat x = alignRight x |> withFormat "{0:c}"
 
-    let applySchema f = mapField (fun c -> { c with Schema = f c.Schema })
+    let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
     let asNumber c = applySchema Schema.asNumber c
     let asDate c = applySchema Schema.asDate c
 
     let getValueFromButtonEvent o (grid: Grid<'T>) =
-        JQuery.JQuery.Of(o?currentTarget : Dom.Node).Closest("TR").Get(0)
+        JQuery.JQuery.Of(o?currentTarget: Dom.Node).Closest("TR").Get 0
         |> grid.DataItem
 
-    let fromMapping onGrid =
-        function
-        | Field f ->
-            Column(Field = f.Field, Title = f.Title)
-            |>! fun column ->
-                f.Attributes |> Option.iter (fun attrib -> column.Attributes <- attrib)
-                f.Width |> Option.iter (fun width -> column.Width <- width)
-                f.Format |> Option.iter (fun fmt -> column.Format <- fmt)
-                f.Template |> Option.iter (fun template -> column.Template <- template)
+    let fromMapping onGrid col =
+        let column =
+            match col.Content with
+            | Field f ->
+                Column(Field = f.Field)
+                |>! fun column ->
+                    Option.iter (fun f -> column.Format <- f) f.Format
+                    Option.iter (fun t -> column.Template <- t) f.Template
+            | CommandButton (text, action) ->
+                Column(Command = Command(text, fun e -> onGrid (getValueFromButtonEvent e >> action)))
 
-        | CommandButton (text, action) ->
-            let click (e: obj) = onGrid (getValueFromButtonEvent e >> action)
-            Column(Command = Command(text, click))
+        column.Title <- col.Title
+        Option.iter (fun a -> column.Attributes <- a) col.Attributes
+        Option.iter (fun w -> column.Width <- w) col.Width
+
+        column
 
 module Grid =
     type Selectable<'T> =
@@ -137,10 +156,10 @@ module Grid =
         | Paging of int
         | WithSizer of int
 
-    type BuiltInButton = Create
+    type BuiltInButton = Create | Cancel
     type ToolButton =
         | BuiltIn of BuiltInButton
-        | Template of (unit -> Element)
+        | Template of Element
 
     type T<'T> =
         {
@@ -182,8 +201,10 @@ module Grid =
     let withoutPaging gridConfig = { gridConfig with Paging = None }
     let withRowSelect action gridConfig = { gridConfig with Selectable = Some (Row action) }
     let withCellSelect action gridConfig = { gridConfig with Selectable = Some (Cell action) }
-    let withCreate gridConfig = { gridConfig with ToolButtons = BuiltIn Create :: gridConfig.ToolButtons }
-    let withToolButton f gridConfig = { gridConfig with ToolButtons = Template f :: gridConfig.ToolButtons }
+    let private withToolbarButton kind gridConfig = { gridConfig with ToolButtons = kind :: gridConfig.ToolButtons }
+    let withCreate gridConfig = withToolbarButton (BuiltIn Create) gridConfig
+    let withCancel gridConfig = withToolbarButton (BuiltIn Cancel) gridConfig
+    let withToolButton e = withToolbarButton (Template e)
 
     let withPaging x gridConfig =
         {
@@ -248,12 +269,9 @@ module Grid =
                 gconf.Toolbar <-
                     config.ToolButtons
                     |> List.map (function
-                        | BuiltIn Create ->
-                            ToolbarElement(Name = "create")
-                        | Template f ->
-                            ToolbarElement(
-                                Template = Kendo.Template(f().Html)
-                            )
+                        | BuiltIn Create -> ToolbarElement(Name = "create")
+                        | BuiltIn Cancel -> ToolbarElement(Name = "cancel")
+                        | Template e -> ToolbarElement(Template = Kendo.Template(e.Body?outerHTML))
                     )
                     |> List.toArray
 
@@ -264,8 +282,8 @@ module Grid =
         let schema =
             config.Columns
             |> Seq.choose (function
-                | Column.CommandButton _ -> None
-                | Column.Field field -> Some (field.Field, field.Schema)
+                | { Content = Column.CommandButton _ } -> None
+                | { Content = Column.Field field } -> Some (field.Field, field.Schema)
             )
             |> Schema.create
 

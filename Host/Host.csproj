@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Scripts\*.*" />
+    <Content Include="Stylesheets\KendoOverride.css" />
     <Content Include="Web.config" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
