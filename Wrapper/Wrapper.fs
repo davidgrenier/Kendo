@@ -1,12 +1,12 @@
 ﻿[<JS>]
-module Kendo.Wrapper
+module WebSharper.Kendo.Wrapper
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.Formlet
 
-open Kendo.UI
-open Kendo.Data
+open WebSharper.Kendo.Extension
+open WebSharper.Kendo.Extension.UI
 
 module Tabs =
     type T =
@@ -71,7 +71,7 @@ module Column =
 
     type Content<'T> =
         | Field of Field<'T>
-        | CommandButton of string * ('T -> unit)
+        | CommandButton of string * ('T -> Grid<'T> -> unit)
 
     type T<'T> =
         {
@@ -109,7 +109,7 @@ module Column =
             | CommandButton _ -> col.Content
         { col with Content = content }
 
-    let withWidth width col = { col with Width = Some width }
+    let width width col = { col with Width = Some width }
     let withClass className col = { col with Attributes = Some (Attributes className) }
     
     let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some (templateFunc c) })
@@ -117,20 +117,16 @@ module Column =
     let shortDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "d")) x
     let longDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "D")) x
 
-    let withFormat fmt = mapContent (fun c -> { c with Format = Some fmt })
+    let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
     let alignRight x = withClass "alignRight" x
-    let currencyFormat x = alignRight x |> withFormat "{0:c}"
+    let currencyFormat x = alignRight x |> formatField "{0:c}"
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
     let asNumber c = applySchema Schema.asNumber c
     let asDate c = applySchema Schema.asDate c
 
-    let getValueFromButtonEvent o (grid: Grid<'T>) =
-        JQuery.JQuery.Of(o?currentTarget: Dom.Node).Closest("TR").Get 0
-        |> grid.DataItem
-
-    let fromMapping onGrid col =
+    let fromMapping (onGrid: (Grid<_> -> _) -> _) col =
         let column =
             match col.Content with
             | Field f ->
@@ -139,7 +135,14 @@ module Column =
                     Option.iter (fun f -> column.Format <- f) f.Format
                     Option.iter (fun t -> column.Template <- t) f.Template
             | CommandButton (text, action) ->
-                Column(Command = Command(text, fun e -> onGrid (getValueFromButtonEvent e >> action)))
+                Column(Command = Command(text, fun e ->
+                        onGrid (fun grid ->
+                            JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
+                            |> grid.DataItem
+                            |> action <| grid
+                        )
+                    )
+                )
 
         column.Title <- col.Title
         Option.iter (fun a -> column.Attributes <- a) col.Attributes
@@ -154,7 +157,7 @@ module Grid =
 
     type Paging =
         | Paging of int
-        | WithSizer of int
+        | Sizer of int
 
     type BuiltInButton = Create | Cancel
     type ToolButton =
@@ -171,14 +174,14 @@ module Grid =
             Resizable: bool
             Reorderable: bool
             Filterable: bool
-            Grouping: bool
+            Groupable: bool
             ToolButtons: ToolButton list
         }
 
     let defaultPaging = Some (Paging 10)
     let pageSize = function
         | None -> 0
-        | Some (Paging x | WithSizer x) -> x
+        | Some (Paging x | Sizer x) -> x
 
     let Default columns =
             {
@@ -190,47 +193,44 @@ module Grid =
                 Resizable = false
                 Reorderable = false
                 Filterable = false
-                Grouping = false
+                Groupable = false
                 ToolButtons = []
             }
 
-    let withGrouping gridConfig = { gridConfig with Grouping = true }
-    let withFiltering gridConfig = { gridConfig with Filterable = true }
-    let withReordering gridConfig = { gridConfig with Reorderable = true }
-    let withColumnResizing gridConfig = { gridConfig with Resizable = true }
+    let groupable gridConfig = { gridConfig with Groupable = true }
+    let filterable gridConfig = { gridConfig with Filterable = true }
+    let reorderable gridConfig = { gridConfig with Reorderable = true }
+    let columnResizable gridConfig = { gridConfig with Resizable = true }
     let withoutPaging gridConfig = { gridConfig with Paging = None }
-    let withRowSelect action gridConfig = { gridConfig with Selectable = Some (Row action) }
-    let withCellSelect action gridConfig = { gridConfig with Selectable = Some (Cell action) }
+    let rowSelectable action gridConfig = { gridConfig with Selectable = Some (Row action) }
+    let cellSelectable action gridConfig = { gridConfig with Selectable = Some (Cell action) }
     let private withToolbarButton kind gridConfig = { gridConfig with ToolButtons = kind :: gridConfig.ToolButtons }
-    let withCreate gridConfig = withToolbarButton (BuiltIn Create) gridConfig
-    let withCancel gridConfig = withToolbarButton (BuiltIn Cancel) gridConfig
-    let withToolButton e = withToolbarButton (Template e)
+    let addButton gridConfig = withToolbarButton (BuiltIn Create) gridConfig
+    let cancelButton gridConfig = withToolbarButton (BuiltIn Cancel) gridConfig
+    let customToolButton e = withToolbarButton (Template e)
 
-    let withPaging x gridConfig =
+    let paging x gridConfig =
         {
             gridConfig with
                 Paging =
                     match x, gridConfig.Paging with
                     | 0, _ -> None
                     | x, (None | Some (Paging _)) -> Some (Paging x)
-                    | x, Some (WithSizer _) -> Some (WithSizer x)
+                    | x, Some (Sizer _) -> Some (Sizer x)
         }
 
-    let withPageSizer gridConfig =
+    let pageSizer gridConfig =
         {
             gridConfig with
                 Paging =
                     gridConfig.Paging
                     |> Option.coalesce defaultPaging
-                    |> Option.map (fun (Paging x | WithSizer x) -> WithSizer x)
+                    |> Option.map (fun (Paging x | Sizer x) -> Sizer x)
         }
             
-    let actOnRow action (grid: Grid<_>) =
-        grid.Select() |> grid.DataItem |> action
-
     type Pageable = { pageSizes: bool }
 
-    let buildConfig onGrid config dataSource =
+    let buildConfig (onGrid: (Grid<_> -> _) -> _) config dataSource =
         let columns =
             config.Columns
             |> Seq.map (Column.fromMapping onGrid)
@@ -245,13 +245,13 @@ module Grid =
             Filterable = config.Filterable,
             Reorderable = config.Reorderable,
             Editable = true,
-            Groupable = config.Grouping
+            Groupable = config.Groupable
         )
         |>! fun gconf ->
             config.Paging
             |> Option.iter (function
                 | Paging x -> gconf.Pageable <- true
-                | WithSizer x -> gconf.Pageable <- { pageSizes = true }
+                | Sizer x -> gconf.Pageable <- { pageSizes = true }
             )
 
             config.Selectable
@@ -260,7 +260,7 @@ module Grid =
                     match selectable with
                     | Row action -> gconf.Selectable <- "row"; action
                     | Cell action -> gconf.Selectable <- "cell"; action
-                gconf.Change <- fun _ -> onGrid (actOnRow action)
+                gconf.Change <- fun _ -> onGrid (fun grid -> grid.Select() |> grid.DataItem |> action)
             )
 
             match config.ToolButtons with

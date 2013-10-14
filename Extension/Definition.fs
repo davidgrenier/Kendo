@@ -115,6 +115,7 @@ module Definition =
             |+> Protocol [
                 "select" => T<unit> ^-> T<obj>
                 "dataItem" => T<obj> ^-> t
+                "saveRow" => T<unit> ^-> T<unit>
             ]
 
     let kResource name file =
@@ -137,11 +138,11 @@ module Definition =
 
     let Assembly =
         Assembly [
-            Namespace "Kendo" [
+            Namespace "WebSharper.Kendo.Extension" [
                 Generic - DataSource
                 Kendo
             ]
-            Namespace "Kendo.UI" [
+            Namespace "WebSharper.Kendo.Extension.UI" [
                 Attributes
                 TabStrip
                 Command
@@ -152,16 +153,16 @@ module Definition =
                 Generic - GridConfiguration
                 Generic - Grid
             ]
-            Namespace "Kendo.Dependencies" [
+            Namespace "WebSharper.Kendo.Dependencies" [
                 Jquery
                 KendoAPI
             ]
-            Namespace "Kendo.Culture" [
+            Namespace "WebSharper.Kendo.Culture" [
                 ThemeCommon
                 kResource "English" "js/cultures/kendo.culture.en-CA.min.js"
                 kResource "French" "js/cultures/kendo.culture.fr-CA.min.js"
             ]
-            Namespace "Kendo.Themes" [
+            Namespace "WebSharper.Kendo.Themes" [
                 kResource "Default" "styles/kendo.default.min.css"
                 kResource "Silver" "styles/kendo.silver.min.css"
             ]

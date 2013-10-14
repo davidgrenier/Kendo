@@ -3,8 +3,10 @@ module Kendo.Client
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
+open WebSharper.Kendo.Wrapper
 
-open Kendo.Wrapper
+module C = Column
+module G = Grid
 
 type Philosopher =
     {
@@ -23,31 +25,37 @@ type Philosopher =
             }
 
 let renderData =
-    Grid.Default [
-        Column.field "Name" "Name"
-        |> Column.withWidth 150
-        Column.field "LastName" "Last Name"
-        Column.field "Age" "Age"
-        |> Column.asNumber
-        |> Column.editable
-        |> Column.alignRight
-        |> Column.withWidth 120
-        Column.field "Died" "Died On"
-        |> Column.shortDateFormat
-        |> Column.asDate |> Column.editable
-        |> Column.withWidth 150
-        Column.command "Show JSON" (Json.Stringify >> JavaScript.Alert)
-        |> Column.withWidth 140
+    G.Default [
+        C.field "Name" "Name"
+         |> C.width 150
+        C.field "LastName" "Last Name"
+        C.field "Age" "Age"
+         |> C.asNumber
+         |> C.editable
+         |> C.alignRight
+         |> C.width 120
+        C.field "Died" "Died On"
+         |> C.shortDateFormat
+         |> C.asDate
+         |> C.editable
+         |> C.width 150
+        C.command "Show JSON" (fun v grid ->
+            Json.Stringify v
+            |> JavaScript.Alert
+            grid.SaveRow()
+        )
+        |> C.width 140
     ]
-    |> Grid.withPaging 3
-    |> Grid.withPageSizer
-    |> Grid.withGrouping
-    |> Grid.withFiltering
-    |> Grid.withColumnResizing
-    |> Grid.withReordering
-    |> Grid.withCreate
-    |> Grid.withCancel
-    |> Grid.renderData
+    |> G.paging 5
+    |> G.pageSizer
+    |> G.groupable
+    |> G.filterable
+    |> G.columnResizable
+    |> G.reorderable
+    |> G.addButton
+    |> G.cancelButton
+//    |> Grid.withRowSelect (Json.Stringify >> JavaScript.Alert)
+    |> G.renderData
 
 let page() =
     let grid =

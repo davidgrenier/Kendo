@@ -3,6 +3,8 @@ namespace Kendo
 open IntelliFactory.Html
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Sitelets
+open WebSharper.Kendo.Extension
+open WebSharper.Kendo
 
 type Action =
     | [<CompiledName "">] EN

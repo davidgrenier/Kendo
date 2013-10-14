@@ -24,4 +24,5 @@ let philosophers() =
         philosopher "Ludwig" "Wittgenstein" 62 1947 4 29
         philosopher "Érasme" "de Rotterdam" 69 1536 6 12
         philosopher "Heraclitus" "of Ephesus" 60 1 1 1
+        philosopher "Friedrich" "Nietzsche" 55 1900 08 25
     ]
