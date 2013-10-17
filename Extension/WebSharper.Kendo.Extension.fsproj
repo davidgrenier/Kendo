@@ -1,14 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
     <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>9bc48a80-0401-4080-a37e-d90dfd5619af</ProjectGuid>
+    <ProjectGuid>97f87854-225a-4dd3-a594-1c1a6cc262ea</ProjectGuid>
+    <WebSharperProject>InterfaceGenerator</WebSharperProject>
+    <Name>WebSharper.Kendo.Extension</Name>
+    <RootNamespace>$(Name)</RootNamespace>
+    <AssemblyName>WebSharper.Kendo.Extension</AssemblyName>
     <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>pdbonly</DebugType>
@@ -19,14 +24,12 @@
   </PropertyGroup>
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <Name>Wrapper</Name>
-    <RootNamespace>$(Name)</RootNamespace>
-    <AssemblyName>$(Name)</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <WarningLevel>3</WarningLevel>
+    <ProjectGuid>{80b74471-b493-42e9-b374-086d1943446a}</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>..\Host\Bin\</OutputPath>
+    <OutputPath>bin</OutputPath>
   </PropertyGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '11.0'">
@@ -43,16 +46,12 @@
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <Import Project="WebSharper.targets" Condition="Exists('WebSharper.targets')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.60-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.60-alpha\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.65.66-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.65.66-alpha\build\WebSharper.targets')" />
   <ItemGroup>
+    <Compile Include="Definition.fs" />
     <None Include="packages.config" />
-    <Compile Include="Pervasives.fs" />
-    <Compile Include="Wrapper.fs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Extension">
-      <HintPath>..\Extension\bin\Extension.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>

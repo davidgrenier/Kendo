@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+    <metadata>
+        <id>WebSharper.KendoWeb</id>
+        <version>1.0-alpha</version>
+        <title>Kendo Binding &amp; Wrapper for WebSharper</title>
+        <authors>David Grenier</authors>
+        <projectUrl>https://github.com/davidgrenier/Kendo</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>WebSharper binding for Kendo Web. Also includes an F# friendly wrapper that will avoid having you spread the Kendo API throughout your code-base.
+
+WebSharper.Kendo contains the Wrapper as well as any dependencies.
+
+WebSharper.Kendo.Extension contains what can be regarded as the lower-level Kendo API binding.
+
+Contributions are welcome and even feature requests I'll try to see what I can do.</description>
+        <summary />
+        <language>en-CA</language>
+        <tags>WebSharper Kendo</tags>
+        <dependencies>
+            <group targetFramework=".NETCore4.5">
+                <dependency id="WebSharper" version="2.5.65.66-alpha" />
+            </group>
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="Host\bin\WebSharper.Kendo.dll" target="lib\WebSharper.Kendo.dll" />
+        <file src="Host\bin\WebSharper.Kendo.Extension.dll" target="lib\WebSharper.Kendo.Extension.dll" />
+    </files>
+</package>

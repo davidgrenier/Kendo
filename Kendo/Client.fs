@@ -3,7 +3,7 @@ module Kendo.Client
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
-open WebSharper.Kendo.Wrapper
+open WebSharper.Kendo
 
 module C = Column
 module G = Grid

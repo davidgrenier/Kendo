@@ -15,7 +15,6 @@ let philosopher name last age year month day =
         Age = age
         Died = System.DateTime(year, month, day)
     }
-    
 
 [<RPC>]
 let philosophers() =

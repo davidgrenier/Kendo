@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module WebSharper.Kendo.Pervasives
+module WebSharper.Pervasives
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
