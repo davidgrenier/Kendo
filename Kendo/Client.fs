@@ -53,6 +53,35 @@ let renderData =
 //    |> Grid.withRowSelect (Json.Stringify >> JavaScript.Alert)
     |> G.renderData
 
+let example =
+        Pre [Text """
+    G.Default [
+        C.field "Name" "Name"
+            |> C.width 150
+        C.field "LastName" "Last Name"
+        C.field "Age" "Age"
+            |> C.typed Schema.Number
+            |> C.editable
+            |> C.alignRight
+            |> C.width 120
+        C.field "Died" "Died On"
+            |> C.shortDateFormat
+            |> C.typed Schema.Date
+            |> C.editable
+            |> C.width 150
+        C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)
+            |> C.width 140
+    ]
+    |> G.paging 5
+    |> G.adjustablePaging
+    |> G.groupable
+    |> G.filterable
+    |> G.resizableColumn
+    |> G.reorderable
+    |> G.addButton
+    |> G.cancelButton
+    |> G.renderData"""]
+
 let page() =
     let grid =
         Data.philosophers()
@@ -60,7 +89,7 @@ let page() =
         |> renderData
     Div [
         Tabs.createTabs [
-            Tabs.create "Grid" (fun () -> Div [grid])
+            Tabs.create "Grid" (fun () -> Div [example; grid])
             Tabs.create "TreeView" (fun () -> Div [Text "test"])
         ]
     ]

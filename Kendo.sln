@@ -22,6 +22,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{281DD115-D481-45B4-BAFB-F1679BB9779B}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
+		WebSharper.KendoWeb.nuspec = WebSharper.KendoWeb.nuspec
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebSharper.Kendo", "Wrapper\WebSharper.Kendo.fsproj", "{9BC48A80-0401-4080-A37E-D90DFD5619AF}"
