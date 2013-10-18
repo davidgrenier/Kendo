@@ -41,7 +41,10 @@ type Site() =
                                 match page with
                                 | EN -> [Div [new EnglishPage()]]
                                 | FR -> [Div [new FrenchPage()]]
-                            Head = [Link [Rel "stylesheet"; Attributes.HRef "Stylesheets/KendoOverride.css" ]]
+                            Head =
+                                [
+                                    Link [Rel "stylesheet"; HRef "Stylesheets/Default.css" ]
+                                ]
                     }
             |> Sitelet.Infer
         member this.Actions = []

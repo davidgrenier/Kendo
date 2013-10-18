@@ -55,6 +55,10 @@ let renderData =
 
 let example =
         Pre [Text """
+module C = Column
+module G = Grid
+
+let renderData =
     G.Default [
         C.field "Name" "Name"
             |> C.width 150
@@ -80,7 +84,7 @@ let example =
     |> G.reorderable
     |> G.addButton
     |> G.cancelButton
-    |> G.renderData"""]
+    |> G.renderData"""] |+ "code"
 
 let page() =
     let grid =
