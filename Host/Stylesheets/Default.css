@@ -1,0 +1,11 @@
+﻿.k-grid td {
+    padding: .1em .6em;
+}
+.alignRight {
+    text-align: right;
+}
+
+.code {
+    font-family: Consolas, monaco, monospace;
+    font-size: 10pt;
+}
