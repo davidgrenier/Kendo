@@ -13,7 +13,7 @@ type Action =
 [<Require(typeof<Themes.Silver>); Require(typeof<Culture.French>)>]
 type FrenchPage() =
     inherit Web.Control()
-
+    
     [<JS>]
     override this.Body =
         Kendo.Culture "fr-CA"
@@ -31,7 +31,7 @@ type EnglishPage() =
 [<Sealed>]
 type Site() =
     interface IWebsite<Action> with
-        member this.Sitelet =
+        member x.Sitelet =
             fun page ->
                 Content.PageContent <| fun _ ->
                     {
@@ -41,13 +41,10 @@ type Site() =
                                 match page with
                                 | EN -> [Div [new EnglishPage()]]
                                 | FR -> [Div [new FrenchPage()]]
-                            Head =
-                                [
-                                    Link [Rel "stylesheet"; HRef "Stylesheets/Default.css" ]
-                                ]
+                            Head = [Link [Rel "stylesheet"; HRef "Stylesheets/Default.css" ]]
                     }
             |> Sitelet.Infer
-        member this.Actions = []
+        member x.Actions = []
 
 [<assembly: Website(typeof<Site>)>]
 do ()
