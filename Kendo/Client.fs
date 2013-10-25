@@ -32,7 +32,7 @@ let renderData =
         C.field "Age" "Age"
             |> C.typed Schema.Number
             |> C.editable
-            |> C.alignRight
+            |> C.rightAligned
             |> C.width 120
         C.field "Died" "Died On"
             |> C.shortDateFormat
@@ -41,6 +41,7 @@ let renderData =
             |> C.width 150
         C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)
             |> C.width 140
+            |> C.centered
     ]
     |> G.paging 5
     |> G.adjustablePaging
@@ -50,7 +51,6 @@ let renderData =
     |> G.reorderable
     |> G.addButton
     |> G.cancelButton
-//    |> Grid.withRowSelect (Json.Stringify >> JavaScript.Alert)
     |> G.renderData
 
 let example =
@@ -66,7 +66,7 @@ let renderData =
         C.field "Age" "Age"
             |> C.typed Schema.Number
             |> C.editable
-            |> C.alignRight
+            |> C.rightAligned
             |> C.width 120
         C.field "Died" "Died On"
             |> C.shortDateFormat
@@ -75,6 +75,7 @@ let renderData =
             |> C.width 150
         C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)
             |> C.width 140
+            |> C.centered
     ]
     |> G.paging 5
     |> G.adjustablePaging

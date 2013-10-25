@@ -1,8 +1,12 @@
 ﻿.k-grid td {
     padding: .1em .6em;
 }
-.alignRight {
+.rightAligned {
     text-align: right;
+}
+
+.centered {
+    text-align: center;
 }
 
 .code {

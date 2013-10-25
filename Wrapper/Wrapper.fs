@@ -19,16 +19,24 @@ module Tabs =
         
         let li tab = LI [Text tab.Name]
 
+        let headTab = tabs.Head |> li |+ "k-state-active"
+        let headContent = tabs.Head.Content()
+
+        let tabs, contents =
+            tabs.Tail
+            |> List.map (fun tab ->
+                (li tab, Div [])
+                |>! fun (t, body) ->
+                    (JQuery.JQuery.Of t.Dom).One("mouseover", fun _ _ -> body -- tab.Content() |> ignore)
+                    |> ignore
+            )
+            |> List.unzip
+
         Div [
-            UL [
-                yield tabs.Head |> li |+ "k-state-active"
-                yield! tabs.Tail |> Seq.map li
-            ]
-        ] -< (tabs |> Seq.map (fun t -> t.Content()))
-        |>! OnAfterRender (fun el ->
-            TabStrip(el.Body, Open = false, Close = false)
-            |> ignore
-        )
+            yield headTab :: tabs |> UL
+            yield! headContent :: contents
+        ]
+        |>! fun el -> TabStrip(el.Body, Open = false, Close = false) |> ignore
 
 module Schema =
     type Type = String | Number | Date
@@ -108,8 +116,9 @@ module Column =
     let longDateFormat x = formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "D")) x
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
-    let alignRight x = withClass "alignRight" x
-    let currencyFormat x = alignRight x |> formatField "{0:c}"
+    let rightAligned x = withClass "rightAligned" x
+    let centered x = withClass "centered" x
+    let currencyFormat x = rightAligned x |> formatField "{0:c}"
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
