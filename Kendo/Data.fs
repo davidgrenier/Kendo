@@ -6,6 +6,7 @@ type Philosopher =
         LastName: string
         Age: int
         Died: System.DateTime
+        Alive: bool
     }
 
 let philosopher name last age year month day =
@@ -14,6 +15,7 @@ let philosopher name last age year month day =
         LastName = last
         Age = age
         Died = System.DateTime(year, month, day)
+        Alive = false
     }
 
 [<RPC>]

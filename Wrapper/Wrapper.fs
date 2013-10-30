@@ -27,7 +27,11 @@ module Tabs =
             |> List.map (fun tab ->
                 (li tab, Div [])
                 |>! fun (t, body) ->
-                    (JQuery.JQuery.Of t.Dom).One("mouseover", fun _ _ -> body -- tab.Content() |> ignore)
+                    (JQuery.JQuery.Of t.Dom).One("mouseover", fun _ _ ->
+                        async {
+                            body -- tab.Content() |> ignore
+                        } |> Async.Start
+                    )
                     |> ignore
             )
             |> List.unzip
@@ -39,7 +43,7 @@ module Tabs =
         |>! fun el -> TabStrip(el.Body, Open = false, Close = false) |> ignore
 
 module Schema =
-    type Type = String | Number | Date
+    type Type = String | Number | Date | Bool
     type T = { Editable: bool; Type: Type }
 
     let readonly = { Editable = false; Type = String }
@@ -54,6 +58,7 @@ module Schema =
                 | String -> "string"
                 | Number -> "number"
                 | Date -> "date"
+                | Bool -> "boolean"
             (?<-) schema fieldName (FieldType(editable, typ))
             schema
         ) (obj())
