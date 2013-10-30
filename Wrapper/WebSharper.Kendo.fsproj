@@ -46,7 +46,7 @@
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <Import Project="WebSharper.targets" Condition="Exists('WebSharper.targets')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.65.66-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.65.66-alpha\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets')" />
   <ItemGroup>
     <Compile Include="Pervasives.fs" />
     <Compile Include="Wrapper.fs" />

@@ -60,13 +60,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Kendo\Kendo.fsproj">
       <Project>{27c8e141-1264-4fdb-9751-98353d302303}</Project>
       <Name>Kendo</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -99,5 +99,5 @@
     </VisualStudio>
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.65.66-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.65.66-alpha\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets')" />
 </Project>
