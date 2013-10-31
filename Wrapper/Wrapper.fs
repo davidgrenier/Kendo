@@ -204,6 +204,8 @@ module Grid =
                 ToolButtons = []
             }
 
+    let sortable gridConfig = { gridConfig with Sortable = true }
+    let nonScrollable gridConfig = { gridConfig with Scrollable = false }
     let groupable gridConfig = { gridConfig with Groupable = true }
     let filterable gridConfig = { gridConfig with Filterable = true }
     let reorderable gridConfig = { gridConfig with Reorderable = true }
