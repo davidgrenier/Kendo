@@ -62,11 +62,11 @@
     <Reference Include="System.Numerics" />
     <Reference Include="System.Web" />
     <Reference Include="WebSharper.Kendo">
-      <HintPath>..\packages\WebSharper.KendoWeb.1.0.4-alpha\lib\WebSharper.Kendo.dll</HintPath>
+      <HintPath>..\packages\WebSharper.KendoWeb.1.0.6-alpha\lib\WebSharper.Kendo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="WebSharper.Kendo.Extension">
-      <HintPath>..\packages\WebSharper.KendoWeb.1.0.4-alpha\lib\WebSharper.Kendo.Extension.dll</HintPath>
+      <HintPath>..\packages\WebSharper.KendoWeb.1.0.6-alpha\lib\WebSharper.Kendo.Extension.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>

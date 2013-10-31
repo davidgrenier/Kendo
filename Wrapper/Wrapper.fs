@@ -44,13 +44,14 @@ module Tabs =
 
 module Schema =
     type Type = String | Number | Date | Bool
-    type T = { Editable: bool; Type: Type }
+    type T = { Editable: bool option; Type: Type }
 
-    let readonly = { Editable = false; Type = String }
-    let editable schema = { schema with Editable = true }
+    let zero = { Editable = None; Type = String }
+    let readonly schema = { schema with Editable = Some false }
+    let editable schema = { schema with Editable = Some true }
     let typed typ schema = { schema with Type = typ }
 
-    let create (schemas: (string * T) seq) =
+    let create defaultEdit (schemas: (string * T) seq) =
         schemas
         |> Seq.fold (fun schema (fieldName, { Editable = editable; Type = typ } ) ->
             let typ =
@@ -59,7 +60,7 @@ module Schema =
                 | Number -> "number"
                 | Date -> "date"
                 | Bool -> "boolean"
-            (?<-) schema fieldName (FieldType(editable, typ))
+            (?<-) schema fieldName (FieldType(defaultArg editable defaultEdit, typ))
             schema
         ) (obj())
 
@@ -97,7 +98,7 @@ module Column =
             Field = name
             Format = None
             Template = None
-            Schema = Schema.readonly
+            Schema = Schema.zero
         }
         |> create title
 
@@ -127,6 +128,7 @@ module Column =
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
+    let readonly c = applySchema Schema.readonly c
     let typed typ = applySchema (Schema.typed typ)
 
     let fromMapping (onGrid: (Grid<_> -> _) -> _) col =
@@ -178,6 +180,7 @@ module Grid =
             Reorderable: bool
             Filterable: bool
             Groupable: bool
+            Editable: bool
             ToolButtons: ToolButton list
         }
 
@@ -197,6 +200,7 @@ module Grid =
                 Reorderable = false
                 Filterable = false
                 Groupable = false
+                Editable = false
                 ToolButtons = []
             }
 
@@ -211,6 +215,7 @@ module Grid =
     let addButton gridConfig = withToolbarButton (BuiltIn Create) gridConfig
     let cancelButton gridConfig = withToolbarButton (BuiltIn Cancel) gridConfig
     let customToolButton e = withToolbarButton (Template e)
+    let editable gridConfig = { gridConfig with Editable = true }
 
     let paging x gridConfig =
         {
@@ -288,7 +293,7 @@ module Grid =
                 | { Content = Column.CommandButton _ } -> None
                 | { Content = Column.Field field } -> Some (field.Field, field.Schema)
             )
-            |> Schema.create
+            |> Schema.create config.Editable
 
         let gridConfig =
             DataSource(

@@ -25,25 +25,25 @@ let renderData =
     G.Default [
         C.field "P.Name" "Name"
             |> C.width 150
+            |> C.readonly
         C.field "P.LastName" "Last Name"
+            |> C.readonly
         C.field "P.Age" "Age"
             |> C.typed Schema.Number
-            |> C.editable
             |> C.rightAligned
             |> C.width 120
         C.field "Died" "Died On"
             |> C.shortDateFormat
             |> C.typed Schema.Date
-            |> C.editable
             |> C.width 150
         C.field "P.Alive" "Alive"
             |> C.typed Schema.Bool
-            |> C.editable
             |> C.width 70
         C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)
             |> C.width 140
             |> C.centered
     ]
+    |> G.editable
     |> G.paging 5
     |> G.adjustablePaging
     |> G.groupable
