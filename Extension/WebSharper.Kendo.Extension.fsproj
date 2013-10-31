@@ -29,7 +29,7 @@
     <ProjectGuid>{80b74471-b493-42e9-b374-086d1943446a}</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>bin</OutputPath>
+    <OutputPath>..\Wrapper\bin\</OutputPath>
   </PropertyGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '11.0'">

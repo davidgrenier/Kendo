@@ -27,7 +27,7 @@
     <WarningLevel>3</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>..\Host\Bin\</OutputPath>
+    <OutputPath>bin\</OutputPath>
     <DocumentationFile>
     </DocumentationFile>
   </PropertyGroup>

@@ -3,6 +3,7 @@ module Kendo.Client
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
+open IntelliFactory.WebSharper.EcmaScript
 open WebSharper.Kendo
 
 module C = Column
@@ -10,28 +11,22 @@ module G = Grid
 
 type Philosopher =
     {
-        Name: string
-        LastName: string
-        Age: int
-        Died: EcmaScript.Date
-        Alive: bool
+        P: Data.Philosopher
+        Died: Date
     }
 
     with static member ofPerson (p: Data.Philosopher) =
             {
-                Name = p.Name
-                LastName = p.LastName
-                Age = p.Age
+                P = p
                 Died = p.Died.ToEcma()
-                Alive = p.Alive
             }
 
 let renderData =
     G.Default [
-        C.field "Name" "Name"
+        C.field "P.Name" "Name"
             |> C.width 150
-        C.field "LastName" "Last Name"
-        C.field "Age" "Age"
+        C.field "P.LastName" "Last Name"
+        C.field "P.Age" "Age"
             |> C.typed Schema.Number
             |> C.editable
             |> C.rightAligned
@@ -41,7 +36,7 @@ let renderData =
             |> C.typed Schema.Date
             |> C.editable
             |> C.width 150
-        C.field "Alive" "Alive"
+        C.field "P.Alive" "Alive"
             |> C.typed Schema.Bool
             |> C.editable
             |> C.width 70
