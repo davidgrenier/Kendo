@@ -23,7 +23,7 @@
     <Name>Kendo</Name>
     <RootNamespace>$(Name)</RootNamespace>
     <AssemblyName>$(Name)</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <WarningLevel>3</WarningLevel>
     <ProjectGuid>{27c8e141-1264-4fdb-9751-98353d302303}</ProjectGuid>
   </PropertyGroup>
@@ -43,7 +43,7 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
-  <Import Project="WebSharper.targets" Condition="Exists('WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.74\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.74\build\WebSharper.targets')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
     <Compile Include="Pervasives.fs" />
@@ -62,13 +62,12 @@
     <Reference Include="System.Numerics" />
     <Reference Include="System.Web" />
     <Reference Include="WebSharper.Kendo">
-      <HintPath>..\packages\WebSharper.KendoWeb.1.0.6-alpha\lib\WebSharper.Kendo.dll</HintPath>
+      <HintPath>..\packages\WebSharper.KendoWeb.1.0.18-alpha\lib\WebSharper.Kendo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="WebSharper.Kendo.Extension">
-      <HintPath>..\packages\WebSharper.KendoWeb.1.0.6-alpha\lib\WebSharper.Kendo.Extension.dll</HintPath>
+      <HintPath>..\packages\WebSharper.KendoWeb.1.0.18-alpha\lib\WebSharper.Kendo.Extension.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
-  <Import Project="..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets')" />
 </Project>

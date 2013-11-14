@@ -24,7 +24,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <WarningLevel>3</WarningLevel>
     <ProjectGuid>{80b74471-b493-42e9-b374-086d1943446a}</ProjectGuid>
   </PropertyGroup>
@@ -44,12 +44,10 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
-  <Import Project="WebSharper.targets" Condition="Exists('WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.74\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.74\build\WebSharper.targets')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets')" />
   <ItemGroup>
     <Compile Include="Definition.fs" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
