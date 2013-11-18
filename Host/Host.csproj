@@ -99,5 +99,5 @@
     </VisualStudio>
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets')" />
 </Project>

@@ -13,34 +13,33 @@ module Tabs =
 
     let create name content = { Name = name; Content = content }
 
-    let createTabs tabs =
-        if List.isEmpty tabs then
-            failwith "The list must contain at least one tab."
-        
-        let li tab = LI [Text tab.Name]
+    let createTabs = function
+        | [] -> failwith "The list must contain at least one tab."
+        | head::tail ->
+            let li tab = LI [Text tab.Name]
 
-        let headTab = tabs.Head |> li |+ "k-state-active"
-        let headContent = tabs.Head.Content()
+            let headTab = li head |+ "k-state-active"
+            let headContent = head.Content()
 
-        let tabs, contents =
-            tabs.Tail
-            |> List.map (fun tab ->
-                (li tab, Div [])
-                |>! fun (t, body) ->
-                    (JQuery.JQuery.Of t.Dom).One("mouseover", fun _ _ ->
+            let tabs, contents =
+                tail
+                |> List.map (fun tab ->
+                    let t, body = li tab, Div[]
+                    JQuery.JQuery.Of(t.Dom).One("mouseover", fun _ _ ->
                         async {
                             body -- tab.Content() |> ignore
                         } |> Async.Start
                     )
                     |> ignore
-            )
-            |> List.unzip
+                    t, body
+                )
+                |> List.unzip
 
-        Div [
-            yield headTab :: tabs |> UL
-            yield! headContent :: contents
-        ]
-        |>! fun el -> TabStrip(el.Body, Open = false, Close = false) |> ignore
+            Div [
+                yield headTab :: tabs |> UL
+                yield! headContent :: contents
+            ]
+            |>! fun el -> TabStrip(el.Body, Open = false, Close = false) |> ignore
 
 module Schema =
     type Type = String | Number | Date | Bool
@@ -60,7 +59,8 @@ module Schema =
                 | Number -> "number"
                 | Date -> "date"
                 | Bool -> "boolean"
-            (?<-) schema fieldName (FieldType(defaultArg editable defaultEdit, typ))
+            let fieldType = FieldType(defaultArg editable defaultEdit, typ)
+            (?<-) schema fieldName fieldType
             schema
         ) (obj())
 
@@ -70,6 +70,7 @@ module Column =
             Field: string
             Format: string option
             Template: ('T -> string) option
+            Editor: (string * string) list
             Schema: Schema.T
         }
 
@@ -98,6 +99,7 @@ module Column =
             Field = name
             Format = None
             Template = None
+            Editor = []
             Schema = Schema.zero
         }
         |> create title
@@ -127,6 +129,7 @@ module Column =
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
+    let editor choices = mapContent (fun c -> { c with Editor = choices })
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
     let typed typ = applySchema (Schema.typed typ)
@@ -139,6 +142,18 @@ module Column =
                 |>! fun column ->
                     Option.iter (fun f -> column.Format <- f) f.Format
                     Option.iter (fun t -> column.Template <- t) f.Template
+                    match f.Editor with
+                    | [] -> ()
+                    | choices ->
+                        column.Editor <- fun (container, options) ->
+                            let choices =
+                                choices
+                                |> List.map (fun (label, value) -> DropDownValue(label, value))
+                                |> List.toArray
+                            let conf = DropDownConfiguration("text", "value", choices)
+                            let target = JQuery.JQuery.Of("<input>").AppendTo(container)
+                            DropDownList(target, conf)
+                            |> ignore
             | CommandButton (text, action) ->
                 Column(Command = Command(text, fun e ->
                         onGrid (fun grid ->

@@ -1,5 +1,25 @@
 ﻿module Kendo.Data
 
+type Door =
+    | Open
+    | Locked
+    | ClosedBy of string
+
+    with
+        [<JS>]
+        override x.ToString() =
+            match x with
+            | Open -> "Open"
+            | Locked -> "Locked"
+            | ClosedBy _ -> "Closed"
+
+let getCases<'t> () =
+    Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typeof<'t>
+    |> Array.map (fun x -> x.Name)
+
+[<RPC>]
+let getDoorCases = getCases<Door>
+
 type Philosopher =
     {
         Name: string
@@ -7,6 +27,7 @@ type Philosopher =
         Age: int
         Died: System.DateTime
         Alive: bool
+        Door: Door
     }
 
 let philosopher name last age year month day =
@@ -16,6 +37,7 @@ let philosopher name last age year month day =
         Age = age
         Died = System.DateTime(year, month, day)
         Alive = false
+        Door = Locked
     }
 
 [<RPC>]

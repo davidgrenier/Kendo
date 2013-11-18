@@ -46,7 +46,7 @@
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <Import Project="WebSharper.targets" Condition="Exists('WebSharper.targets')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.70.69-alpha\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets')" />
   <ItemGroup>
     <Compile Include="Pervasives.fs" />
     <Compile Include="Wrapper.fs" />
@@ -60,8 +60,12 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="WebSharper.Kendo.Extension">
-      <HintPath>..\Extension\bin\WebSharper.Kendo.Extension.dll</HintPath>
-    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Extension\WebSharper.Kendo.Extension.fsproj">
+      <Name>WebSharper.Kendo.Extension</Name>
+      <Project>{80b74471-b493-42e9-b374-086d1943446a}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
 </Project>

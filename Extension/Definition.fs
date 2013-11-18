@@ -61,7 +61,7 @@ module Definition =
                         "field", T<string>
                         "title", T<string>
                         "command", Command.Type
-    //                    "editor", T<obj> * ColumnConfigurationOptions ^-> T<unit>
+                        "editor", T<JQuery.JQuery> * T<obj> ^-> T<unit>
                         "filterable", T<bool>
                         "format", T<string>
                         "sortable", T<bool>
@@ -88,6 +88,37 @@ module Definition =
                         "schema", Schema.Type
                     ]
             }
+
+    let DropDownValue =
+        Generic / fun t ->
+            Pattern.Config "kendo.ui.DropDownValue" {
+                Required =
+                    [
+                        "text", T<string>
+                        "value", t
+                    ]
+                Optional = []
+            }
+
+    let DropDownConfiguration =
+        Generic / fun t ->
+            Pattern.Config "kendo.ui.DropDownConfiguration" {
+                Required =
+                    [
+                        "dataTextField", T<string>
+                        "dataValueField", T<string>
+                        "dataSource", Type.ArrayOf (DropDownValue t)
+                    ]
+                Optional = []
+            }
+
+    let DropDownList =
+        Generic / fun t ->
+            Class "kendo.ui.DropDownList"
+            |+> [
+                Constructor (T<Dom.Element> * DropDownConfiguration t)
+                Constructor (T<JQuery.JQuery> * DropDownConfiguration t)
+            ]
 
     let ToolButton =
         Pattern.Config "kendo.ui.ToolbarElement" {
@@ -125,8 +156,8 @@ module Definition =
         Generic / fun t ->
             Class "kendo.ui.Grid"
             |+> [
-                Constructor T<obj>
-                Constructor (T<obj> * GridConfiguration t)
+                Constructor T<Dom.Element>
+                Constructor (T<Dom.Element> * GridConfiguration t)
             ]
             |+> Protocol [
                 "select" => T<unit> ^-> T<obj>
@@ -171,6 +202,9 @@ module Definition =
                 Generic - Column
                 Generic - GridConfiguration
                 Generic - Grid
+                Generic - DropDownValue
+                Generic - DropDownConfiguration
+                Generic - DropDownList
             ]
             Namespace "WebSharper.Kendo.Dependencies" [
                 Jquery
