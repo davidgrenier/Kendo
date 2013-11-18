@@ -11,7 +11,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Host</RootNamespace>
     <AssemblyName>Host</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <WebSharperProject>Site</WebSharperProject>
     <UseIISExpress>true</UseIISExpress>
     <IISExpressSSLPort />
@@ -65,9 +65,6 @@
       <Name>Kendo</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="packages.config" />
-  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
@@ -79,7 +76,7 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
-  <Import Project="WebSharper.targets" Condition="Exists('WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.74\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.74\build\WebSharper.targets')" />
   <ProjectExtensions>
     <VisualStudio>
       <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
@@ -99,5 +96,8 @@
     </VisualStudio>
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+<<<<<<< HEAD
   <Import Project="..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets')" />
+=======
+>>>>>>> b8b702c7d6c6386eba2cccc2cc3f8a44b6d8b246
 </Project>
