@@ -9,8 +9,6 @@ open WebSharper.Kendo
 module C = Column
 module G = Grid
 
-type Test = House | Card
-
 type Philosopher =
     {
         Name: string
@@ -38,18 +36,13 @@ type Philosopher =
 
 open WebSharper.Kendo.Extension.UI
 
+type Test = House | Card
+
 let create() =
-    Input []
-    |>! OnAfterRender (fun input ->
-        let choices =
-            [|
-                DropDownValue("House", House)
-                DropDownValue("Card", Card)
-            |]
-        let config = DropDownConfiguration("text", "value", choices)
-        DropDownList(input.Body, config)
-        |> ignore
-    )
+    Controls.dropDown [
+        "House", House
+        "Card", Card
+    ]
 
 let renderData =
     G.Default [
@@ -59,8 +52,7 @@ let renderData =
         C.field "LastName" "Last Name"
             |> C.readonly
         C.field "Age" "Age"
-            |> C.typed Schema.Number
-            |> C.rightAligned
+            |> C.numeric
             |> C.width 120
         C.field "Died" "Died On"
             |> C.shortDateFormat
@@ -71,8 +63,9 @@ let renderData =
             |> C.width 70
         C.field "Test" "Test"
             |> C.editor [
-                "A House", "House"
-                "A Card", "Card"
+                "Select...", ""
+                "House", "House"
+                "Card", "Card"
             ]
         C.field "Door" "Door"
         C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)

@@ -8,6 +8,22 @@ open IntelliFactory.WebSharper.Formlet
 open WebSharper.Kendo.Extension
 open WebSharper.Kendo.Extension.UI
 
+let private dropDownConfig choices =
+    let choices =
+        choices
+        |> List.map (fun x -> DropDownValue x)
+        |> List.toArray
+
+    DropDownConfiguration("text", "value", choices)
+
+module Controls =
+    let dropDown choices =
+        Input []
+        |>! OnAfterRender (fun input ->
+            DropDownList(input.Body, dropDownConfig choices)
+            |> ignore
+        )
+
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
 
@@ -133,6 +149,7 @@ module Column =
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
     let typed typ = applySchema (Schema.typed typ)
+    let numeric x = rightAligned x |> typed Schema.Number
 
     let fromMapping (onGrid: (Grid<_> -> _) -> _) col =
         let column =
@@ -146,13 +163,9 @@ module Column =
                     | [] -> ()
                     | choices ->
                         column.Editor <- fun (container, options) ->
-                            let choices =
-                                choices
-                                |> List.map (fun (label, value) -> DropDownValue(label, value))
-                                |> List.toArray
-                            let conf = DropDownConfiguration("text", "value", choices)
-                            let target = JQuery.JQuery.Of("<input>").AppendTo(container)
-                            DropDownList(target, conf)
+                            let format = "<input data-bind='value:" + options?field + "'/>"
+                            let target = JQuery.JQuery.Of(format).AppendTo(container)
+                            DropDownList(target, dropDownConfig choices)
                             |> ignore
             | CommandButton (text, action) ->
                 Column(Command = Command(text, fun e ->
