@@ -46,10 +46,6 @@
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <Import Project="..\packages\WebSharper.2.5.74\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.74\build\WebSharper.targets')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-<<<<<<< HEAD
-  <Import Project="..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.72.71-alpha\build\WebSharper.targets')" />
-=======
->>>>>>> b8b702c7d6c6386eba2cccc2cc3f8a44b6d8b246
   <ItemGroup>
     <Compile Include="Definition.fs" />
   </ItemGroup>
