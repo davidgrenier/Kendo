@@ -166,7 +166,7 @@ module Definition =
             ]
 
     let kResource name file =
-        sprintf "http://cdn.kendostatic.com/2013.3.1030/%s" file
+        sprintf "http://cdn.kendostatic.com/2013.3.1119/%s" file
         |> Resource name
 
     let KendoAPI = kResource "KendoAPI" "js/kendo.web.min.js"
