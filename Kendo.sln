@@ -3,13 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D15AB9CD-7EB4-4EE7-AD79-E9E5F8FD3DE0}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Host", "Host\Host.csproj", "{9D3C9C1D-3335-4D20-8891-7C2A78D1259E}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Kendo", "Kendo\Kendo.fsproj", "{27C8E141-1264-4FDB-9751-98353D302303}"

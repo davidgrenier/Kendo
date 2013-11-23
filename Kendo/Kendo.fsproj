@@ -23,7 +23,7 @@
     <Name>Kendo</Name>
     <RootNamespace>$(Name)</RootNamespace>
     <AssemblyName>$(Name)</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <WarningLevel>3</WarningLevel>
     <ProjectGuid>{27c8e141-1264-4fdb-9751-98353d302303}</ProjectGuid>
   </PropertyGroup>
@@ -50,7 +50,6 @@
     <Compile Include="Data.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="Site.fs" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
