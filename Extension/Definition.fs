@@ -165,6 +165,34 @@ module Definition =
                 "saveRow" => T<unit> ^-> T<unit>
             ]
 
+    let WindowConfiguration =
+        Pattern.Config "kendo.ui.WindowConfiguration" {
+            Required =
+                [
+                    "title", T<string>
+                    "width", T<string>
+                    "close", T<unit> ^-> T<unit>
+                    "actions", Type.ArrayOf T<string>
+                ]
+            Optional =
+                [
+                    "animation", T<bool>
+                    "draggable", T<bool>
+                    "modal", T<bool>
+                    "resizable", T<bool>
+                ]
+        }
+
+    let Window =
+        Class "kendo.ui.Window"
+        |+> [
+            Constructor (T<Dom.Element> * WindowConfiguration)
+        ]
+        |+> Protocol [
+            "open" => T<unit> ^-> T<unit>
+            "close" => T<unit> ^-> T<unit>
+        ]
+
     let kResource name file =
         sprintf "http://cdn.kendostatic.com/2013.3.1119/%s" file
         |> Resource name
@@ -199,6 +227,8 @@ module Definition =
                 FieldType
                 Schema
                 ToolButton
+                WindowConfiguration
+                Window
                 Generic - Column
                 Generic - GridConfiguration
                 Generic - Grid

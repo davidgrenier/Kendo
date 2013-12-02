@@ -68,7 +68,14 @@ let renderData =
                 "Card", "Card"
             ]
         C.field "Door" "Door"
-        C.command "Show JSON" (fun v _ -> Json.Stringify v |> JavaScript.Alert)
+        C.command "Show JSON" (fun v _ ->
+            Div [
+                Div [Text "This is a paragraph"]
+            ]
+            |> Popup.create "Testing Window"
+            |> Popup.render
+            |> fun x -> x.Open()
+        )
             |> C.width 140
             |> C.centered
     ]

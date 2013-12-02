@@ -57,6 +57,51 @@ module Tabs =
             ]
             |>! fun el -> TabStrip(el.Body, Open = false, Close = false) |> ignore
 
+module Popup =
+    type T =
+        {
+            Content: Element
+            Title: string
+            Width: int
+            Draggable: bool
+            Modal: bool
+            Resizable: bool
+        }
+
+    let create title content =
+        {
+            Content = content
+            Title = title
+            Width = 500
+            Draggable = true
+            Modal = false
+            Resizable = true
+        }
+
+    let frozen popup = { popup with Draggable = false }
+    let locked popup = { popup with Resizable = false }
+    let withOverlay popup = { popup with Modal = true }
+    
+    let render popup =
+        let window: Window option ref = ref None
+
+        let actOn f =
+            match !window with
+            | Some w -> f w
+            | None -> ()
+
+        let config =
+            UI.WindowConfiguration (
+                popup.Title,
+                string popup.Width + "px",
+                (fun () -> ()),
+                [|"Close"|],
+                Animation = false
+            )
+        UI.Window(popup.Content.Body, config)
+        |>! fun w -> window := Some w
+        
+
 module Schema =
     type Type = String | Number | Date | Bool
     type T = { Editable: bool option; Type: Type }
