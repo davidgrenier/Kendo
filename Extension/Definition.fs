@@ -195,6 +195,18 @@ module Definition =
             "bind" => (T<string> * (T<unit> ^-> T<unit>)) ^-> T<unit>
         ]
 
+    let MenuConfiguration =
+        Pattern.Config "kendo.ui.MenuConfiguration" {
+            Required = ["select", T<obj> ^-> T<unit>]
+            Optional = ["animation.open.duration", T<int>]
+        }
+
+    let Menu =
+        Class "kendo.ui.Menu"
+        |+> [
+            Constructor (T<Dom.Element> * MenuConfiguration)
+        ]
+
     let kResource name file =
         sprintf "http://cdn.kendostatic.com/2013.3.1119/%s" file
         |> Resource name
@@ -229,6 +241,8 @@ module Definition =
                 ToolButton
                 WindowConfiguration
                 Window
+                MenuConfiguration
+                Menu
                 Generic - Column
                 Generic - GridConfiguration
                 Generic - Grid

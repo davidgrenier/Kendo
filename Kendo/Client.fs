@@ -34,8 +34,6 @@ type Philosopher =
                 Door = p.Door
             }
 
-open WebSharper.Kendo.Extension.UI
-
 type Test = House | Card
 
 let create() =
@@ -43,6 +41,34 @@ let create() =
         "House", House
         "Card", Card
     ]
+
+open IntelliFactory.WebSharper.Formlet
+
+type CC = { Type: string; Number: int }
+
+let paymentFormlet content =
+    let ccType =
+        [
+            "MC", "Master Card"
+            "Visa", "VISA"
+        ]
+    let ccTypeF = 
+        Controls.Select 0 ccType
+        |> Enhance.WithTextLabel "Card Type"
+
+    let numberF = 
+        Controls.Input content
+        |> Formlet.MapElement (fun el -> el.AddClass "test"; el)
+        |> Enhance.WithCssClass "test"
+        |> Enhance.WithTextLabel "Number"
+        |> Validator.IsInt "Credit card number must be numeric"
+        |> Enhance.WithValidationIcon
+
+    Formlet.Yield (fun typeId num -> { Type = typeId; Number = int num })
+    <*> ccTypeF
+    <*> numberF
+    |> Enhance.WithSubmitButton
+    |> Enhance.WithFormContainer
 
 let renderData =
     G.Default [
@@ -62,9 +88,8 @@ let renderData =
         C.command "Show JSON" (fun v _ ->
             Popup.create "Testing Window" [] (fun onWindow ->
                 Div [
-                    Div [Text <| Json.Stringify v]
-                ] -< [
-                    Formlet.Controls.Button "test"
+                    Json.Stringify v
+                    |> paymentFormlet
                     |> Formlet.Formlet.Run (fun _ -> onWindow Popup.close)
                 ]
             )
@@ -77,6 +102,27 @@ let renderData =
     |> G.cancelButton
     |> G.renderData
 
+open WebSharper.Kendo.Extension.UI
+
+let menu =
+    let conf = MenuConfiguration(fun x -> Json.Stringify x |> JavaScript.Alert)
+
+    UL [
+        LI [
+            Text "Menu1"
+        ] -- UL [
+            LI [Text "test"]
+            LI [Text "toto"]
+        ]
+        LI [
+            Text "Menu1"
+        ] -- UL [
+            LI [Text "test"] -- UL [LI [Text "deep"]]
+            LI [Text "toto"]
+        ]
+    ]
+    |>! fun data -> Menu(data.Dom, conf) |> ignore
+
 let page() =
     let grid =
         Div [
@@ -85,6 +131,7 @@ let page() =
             |> renderData
         ]
     Div [
+        menu
         create()
         Tabs.createTabs [
             Tabs.create "Grid" (fun () -> grid)
