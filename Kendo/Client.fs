@@ -46,38 +46,31 @@ let create() =
 
 let renderData =
     G.Default [
-        C.field "Name" "Name"
-            |> C.width 150
-            |> C.readonly
-        C.field "LastName" "Last Name"
-            |> C.readonly
-        C.field "Age" "Age"
-            |> C.numeric
-            |> C.width 120
-        C.field "Died" "Died On"
-            |> C.shortDateFormat
-            |> C.typed Schema.Date
-            |> C.width 150
-        C.field "Alive" "Alive"
-            |> C.typed Schema.Bool
-            |> C.width 70
-        C.field "Test" "Test"
-            |> C.editor [
-                "Select...", ""
-                "House", "House"
-                "Card", "Card"
-            ]
+        C.field "Name" "Name" |> C.width 150 |> C.readonly
+        C.field "LastName" "Last Name" |> C.readonly
+        C.numeric "Age" "Age" |> C.width 120
+        C.date "Died" "Died On"
+        |> C.shortDateFormat
+        |> C.width 150
+        C.bool "Alive" "Alive" |> C.width 70
+        C.editor "Test" "Test" [
+            "Select...", ""
+            "House", "House"
+            "Card", "Card"
+        ]
         C.field "Door" "Door"
         C.command "Show JSON" (fun v _ ->
-            Div [
-                Div [Text "This is a paragraph"]
-            ]
-            |> Popup.create "Testing Window"
-            |> Popup.render
-            |> fun x -> x.Open()
+            Popup.create "Testing Window" [] (fun onWindow ->
+                Div [
+                    Div [Text <| Json.Stringify v]
+                ] -< [
+                    Formlet.Controls.Button "test"
+                    |> Formlet.Formlet.Run (fun _ -> onWindow Popup.close)
+                ]
+            )
         )
-            |> C.width 140
-            |> C.centered
+        |> C.width 140
+        |> C.centered
     ]
     |> G.editable
     |> G.addButton

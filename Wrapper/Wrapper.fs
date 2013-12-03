@@ -60,7 +60,7 @@ module Tabs =
 module Popup =
     type T =
         {
-            Content: Element
+            Content: ((Window -> unit) -> unit) -> Element
             Title: string
             Width: int
             Draggable: bool
@@ -68,39 +68,46 @@ module Popup =
             Resizable: bool
         }
 
-    let create title content =
-        {
-            Content = content
-            Title = title
-            Width = 500
-            Draggable = true
-            Modal = false
-            Resizable = true
-        }
+    let frozen p = { p with Draggable = false }
+    let locked p = { p with Resizable = false }
+    let withoutOverlay p = { p with Modal = false }
 
-    let frozen popup = { popup with Draggable = false }
-    let locked popup = { popup with Resizable = false }
-    let withOverlay popup = { popup with Modal = true }
+    let close (w: Window) = w.Destroy()
     
-    let render popup =
+    let private render popup =
         let window: Window option ref = ref None
-
-        let actOn f =
-            match !window with
-            | Some w -> f w
-            | None -> ()
+        let actOn f = !window |> Option.iter f
 
         let config =
             UI.WindowConfiguration (
                 popup.Title,
                 string popup.Width + "px",
-                (fun () -> ()),
+                (fun () -> actOn close),
                 [|"Close"|],
-                Animation = false
+                Animation = false,
+                Draggable = popup.Draggable,
+                Resizable = popup.Resizable,
+                Modal = popup.Modal
             )
-        UI.Window(popup.Content.Body, config)
-        |>! fun w -> window := Some w
-        
+
+        let w = UI.Window((popup.Content actOn).Body, config)
+
+        w.Bind("activate", w.Center)
+        window := Some w
+        w.Open()
+
+    let create title settings contentF =
+        let applySettings = List.fold (>>) id settings
+        {
+            Content = contentF
+            Title = title
+            Width = 500
+            Draggable = true
+            Modal = true
+            Resizable = true
+        }
+        |> applySettings
+        |> render
 
 module Schema =
     type Type = String | Number | Date | Bool
@@ -176,6 +183,10 @@ module Column =
             | CommandButton _ -> col.Content
         { col with Content = content }
 
+    let editor name title choices =
+        field name title
+        |> mapContent (fun c -> { c with Editor = choices })
+
     let width width col = { col with Width = Some width }
     let withClass className col = { col with Attributes = Some (Attributes className) }
     
@@ -190,11 +201,12 @@ module Column =
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
-    let editor choices = mapContent (fun c -> { c with Editor = choices })
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
     let typed typ = applySchema (Schema.typed typ)
-    let numeric x = rightAligned x |> typed Schema.Number
+    let numeric title name = field title name |> rightAligned |> typed Schema.Number
+    let date title name = field title name |> typed Schema.Date
+    let bool title name = field title name |> typed Schema.Bool
 
     let fromMapping (onGrid: (Grid<_> -> _) -> _) col =
         let column =

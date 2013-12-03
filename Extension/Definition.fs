@@ -190,7 +190,9 @@ module Definition =
         ]
         |+> Protocol [
             "open" => T<unit> ^-> T<unit>
-            "close" => T<unit> ^-> T<unit>
+            "destroy" => T<unit> ^-> T<unit>
+            "center" => T<unit> ^-> T<unit>
+            "bind" => (T<string> * (T<unit> ^-> T<unit>)) ^-> T<unit>
         ]
 
     let kResource name file =
@@ -199,8 +201,6 @@ module Definition =
 
     let KendoAPI = kResource "KendoAPI" "js/kendo.web.min.js"
     let ThemeCommon = kResource "ThemeCommon" "styles/kendo.common.min.css"
-    // Kendo seems to work just fine with jquery 1.10.2
-    // Matching WebSharper's version takes care of not downloading more than once.
     let Jquery = Resource "Jquery" "http://code.jquery.com/jquery-1.10.2.min.js"
 
     let Kendo =
