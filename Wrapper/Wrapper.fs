@@ -41,12 +41,7 @@ module Tabs =
                 tail
                 |> List.map (fun tab ->
                     let t, body = li tab, Div[]
-                    JQuery.JQuery.Of(t.Dom).One("mouseover", fun _ _ ->
-                        async {
-                            body -- tab.Content() |> ignore
-                        } |> Async.Start
-                    )
-                    |> ignore
+                    t |> OnClick (fun _ _ -> body -- tab.Content() |> ignore)
                     t, body
                 )
                 |> List.unzip
