@@ -41,7 +41,8 @@ module Tabs =
                 tail
                 |> List.map (fun tab ->
                     let t, body = li tab, Div[]
-                    t |> OnClick (fun _ _ -> body -- tab.Content() |> ignore)
+                    let content = lazy (body -- tab.Content() |> ignore)
+                    t |> OnClick (fun _ _ -> content.Force())
                     t, body
                 )
                 |> List.unzip
