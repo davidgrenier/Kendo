@@ -195,6 +195,7 @@ module Column =
     let rightAligned x = withClass "rightAligned" x
     let centered x = withClass "centered" x
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
+    let percentFormat precision x = rightAligned x |> formatWithf (fun f v -> Kendo.ToString((?) v f.Field, "p" + string precision))
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c

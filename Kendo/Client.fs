@@ -74,7 +74,7 @@ let renderData =
     G.Default [
         C.field "Name" "Name" |> C.width 150 |> C.readonly
         C.field "LastName" "Last Name" |> C.readonly
-        C.numeric "Age" "Age" |> C.width 120
+        C.numeric "Age" "Age" |> C.width 120 |> C.percentFormat 0
         C.date "Died" "Died On"
         |> C.shortDateFormat
         |> C.width 150
