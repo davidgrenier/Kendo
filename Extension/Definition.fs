@@ -88,6 +88,10 @@ module Definition =
                         "schema", Schema.Type
                     ]
             }
+            |+> Protocol [
+                "data" => T<unit> ^-> Type.ArrayOf t
+                "success" => Type.ArrayOf t ^-> T<unit>
+            ]
 
     let DropDownValue =
         Generic / fun t ->
@@ -162,7 +166,8 @@ module Definition =
             |+> Protocol [
                 "select" => T<unit> ^-> T<obj>
                 "dataItem" => T<obj> ^-> t
-                "saveRow" => T<unit> ^-> T<unit>
+                "dataSource" =? DataSource t
+                "saveChanges" =! T<unit> ^-> T<unit>
             ]
 
     let WindowConfiguration =

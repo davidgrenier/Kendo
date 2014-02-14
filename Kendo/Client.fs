@@ -72,12 +72,10 @@ let paymentFormlet content =
 
 let renderData =
     G.Default [
-        C.field "Name" "Name" |> C.width 150 |> C.readonly
+        C.field "Name" "Name" |> C.width 120 |> C.readonly
         C.field "LastName" "Last Name" |> C.readonly
         C.numeric "Age" "Age" |> C.width 120 |> C.percentFormat 0
-        C.date "Died" "Died On"
-        |> C.shortDateFormat
-        |> C.width 150
+        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 150
         C.bool "Alive" "Alive" |> C.width 70
         C.editor "Test" "Test" [
             "Select...", ""
@@ -85,7 +83,7 @@ let renderData =
             "Card", "Card"
         ]
         C.field "Door" "Door"
-        C.command "Show JSON" (fun v _ ->
+        C.command "Show JSON" (fun v ->
             Popup.create "Testing Window" [] (fun onWindow ->
                 Div [
                     Json.Stringify v
@@ -94,12 +92,19 @@ let renderData =
                 ]
             )
         )
-        |> C.width 140
+        |> C.width 120
         |> C.centered
+        C.delete() |> C.width 120
     ]
     |> G.editable
     |> G.addButton
     |> G.cancelButton
+    |> G.saveButton (fun x -> x.Name + x.LastName) (fun saveActions ->
+        saveActions
+        |> SaveActions.onAdd (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Added ==> " + xs))
+        |> SaveActions.onChange (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Changed ==> " + xs))
+        |> SaveActions.onDelete (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Deleted ==> " + xs))
+    )
     |> G.renderData
 
 open WebSharper.Kendo.Extension.UI

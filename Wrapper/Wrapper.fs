@@ -105,6 +105,20 @@ module Popup =
         |> applySettings
         |> render
 
+module SaveActions =
+    type T<'V> =
+        {
+            Changed: 'V [] -> unit
+            Deleted: 'V [] -> unit
+            Added: 'V [] -> unit
+        }
+
+    let internal zero = { Changed = ignore; Deleted = ignore; Added = ignore }
+
+    let onChange f actions = { actions with Changed = f }
+    let onDelete f actions = { actions with Deleted = f }
+    let onAdd f actions = { actions with Added = f }
+
 module Schema =
     type Type = String | Number | Date | Bool
     type T = { Editable: bool option; Type: Type }
@@ -129,25 +143,25 @@ module Schema =
         ) (obj())
 
 module Column =
-    type Field<'T> =
+    type Field<'V> =
         {
             Field: string
             Format: string option
-            Template: ('T -> string) option
+            Template: ('V -> string) option
             Editor: (string * string) list
             Schema: Schema.T
         }
 
-    type Content<'T> =
-        | Field of Field<'T>
-        | CommandButton of string * ('T -> Grid<'T> -> unit)
+    type Content<'V> =
+        | Field of Field<'V>
+        | CommandButton of string * ('V -> unit)
 
-    type T<'T> =
+    type T<'V> =
         {
             Title: string
             Width: int option
             Attributes: Attributes option
-            Content: Content<'T>
+            Content: Content<'V>
         }
 
     let private create title content =
@@ -171,6 +185,8 @@ module Column =
     let command label action =
         CommandButton (label, action)
         |> create ""
+
+    let delete() = command "destroy" ignore
 
     let private mapContent f col =
         let content = 
@@ -226,7 +242,7 @@ module Column =
                         onGrid (fun grid ->
                             JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
                             |> grid.DataItem
-                            |> action <| grid
+                            |> action
                         )
                     )
                 )
@@ -238,24 +254,24 @@ module Column =
         column
 
 module Grid =
-    type Selectable<'T> =
-        | Row of ('T -> unit)
-        | Cell of ('T -> unit)
+    type Selectable<'V> =
+        | Row of ('V -> unit)
+        | Cell of ('V -> unit)
 
     type Paging =
         | Paging of int
         | Sizer of int
 
-    type BuiltInButton = Create | Cancel
-    type ToolButton =
-        | BuiltIn of BuiltInButton
-        | Template of Element
+    type ToolButton<'K, 'V> =
+        | Create
+        | Cancel
+        | Save of (('V -> 'K) * SaveActions.T<'V>)
 
-    type T<'T> =
+    type Config<'V> =
         {
             Paging: Paging option
-            Columns: Column.T<'T> seq
-            Selectable: Selectable<'T> option
+            Columns: Column.T<'V> seq
+            Selectable: Selectable<'V> option
             Scrollable: bool
             Sortable: bool
             Resizable: bool
@@ -263,8 +279,11 @@ module Grid =
             Filterable: bool
             Groupable: bool
             Editable: bool
-            ToolButtons: ToolButton list
         }
+
+    type T<'K, 'V> =
+        | Plain of Config<'V>
+        | WithToolbar of Config<'V> * ToolButton<'K, 'V> list
 
     let defaultPaging = Some (Paging 10)
     let pageSize = function
@@ -272,34 +291,50 @@ module Grid =
         | Some (Paging x | Sizer x) -> x
 
     let Default columns =
-            {
-                Columns = columns
-                Paging = defaultPaging
-                Selectable = None
-                Scrollable = true
-                Sortable = false
-                Resizable = false
-                Reorderable = false
-                Filterable = false
-                Groupable = false
-                Editable = false
-                ToolButtons = []
-            }
+        Plain {
+            Columns = columns
+            Paging = defaultPaging
+            Selectable = None
+            Scrollable = true
+            Sortable = false
+            Resizable = false
+            Reorderable = false
+            Filterable = false
+            Groupable = false
+            Editable = false
+        }
 
-    let sortable gridConfig = { gridConfig with Sortable = true }
-    let nonScrollable gridConfig = { gridConfig with Scrollable = false }
-    let groupable gridConfig = { gridConfig with Groupable = true }
-    let filterable gridConfig = { gridConfig with Filterable = true }
-    let reorderable gridConfig = { gridConfig with Reorderable = true }
-    let resizableColumn gridConfig = { gridConfig with Resizable = true }
-    let withoutPaging gridConfig = { gridConfig with Paging = None }
-    let selectableRow action gridConfig = { gridConfig with Selectable = Some (Row action) }
-    let selectableCell action gridConfig = { gridConfig with Selectable = Some (Cell action) }
-    let private withToolbarButton kind gridConfig = { gridConfig with ToolButtons = kind :: gridConfig.ToolButtons }
-    let addButton gridConfig = withToolbarButton (BuiltIn Create) gridConfig
-    let cancelButton gridConfig = withToolbarButton (BuiltIn Cancel) gridConfig
-    let customToolButton e = withToolbarButton (Template e)
-    let editable gridConfig = { gridConfig with Editable = true }
+    let onConfig f = function
+        | Plain gridConfig -> Plain (f gridConfig)
+        | WithToolbar (gridConfig, toolButtons) -> WithToolbar (f gridConfig, toolButtons)
+
+    let getConfiguration = function
+        | Plain gridConfig -> gridConfig
+        | WithToolbar (gridConfig, _) -> gridConfig
+
+    let sortable gridConfig = onConfig (fun gridConfig -> { gridConfig with Sortable = true }) gridConfig
+    let nonScrollable gridConfig = onConfig (fun gridConfig -> { gridConfig with Scrollable = false }) gridConfig
+    let groupable gridConfig = onConfig (fun gridConfig -> { gridConfig with Groupable = true }) gridConfig
+    let filterable gridConfig = onConfig (fun gridConfig -> { gridConfig with Filterable = true }) gridConfig
+    let reorderable gridConfig = onConfig (fun gridConfig -> { gridConfig with Reorderable = true }) gridConfig
+    let resizableColumn gridConfig = onConfig (fun gridConfig -> { gridConfig with Resizable = true }) gridConfig
+    let withoutPaging gridConfig = onConfig (fun gridConfig -> { gridConfig with Paging = None }) gridConfig
+    let editable gridConfig = onConfig (fun gridConfig -> { gridConfig with Editable = true }) gridConfig
+    let selectableRow action = onConfig (fun gridConfig -> { gridConfig with Selectable = Some (Row action) })
+    let selectableCell action = onConfig (fun gridConfig -> { gridConfig with Selectable = Some (Cell action) })
+
+    let private withToolbarButton kind = function
+        | Plain gridConfig -> WithToolbar (gridConfig, [kind])
+        | WithToolbar (gridConfig, buttons) ->
+            let buttons =
+                kind :: buttons
+                |> Seq.distinctBy (function Cancel -> 0 | Create -> 1 | Save _ -> 2)
+                |> Seq.toList
+            WithToolbar (gridConfig, buttons)
+    
+    let addButton gridConfig = withToolbarButton Create gridConfig
+    let cancelButton gridConfig = withToolbarButton Cancel gridConfig
+    let saveButton keySelector configurator = withToolbarButton (Save (keySelector, configurator SaveActions.zero))
 
     let paging x gridConfig =
         {
@@ -322,7 +357,8 @@ module Grid =
             
     type Pageable = { pageSizes: bool }
 
-    let buildConfig (onGrid: (Grid<_> -> _) -> _) config dataSource =
+    let buildConfig (onGrid: (Grid<_> -> _) -> _) configuration dataSource =
+        let config = getConfiguration configuration
         let columns =
             config.Columns
             |> Seq.map (Column.fromMapping onGrid)
@@ -355,19 +391,66 @@ module Grid =
                 gconf.Change <- fun _ -> onGrid (fun grid -> grid.Select() |> grid.DataItem |> action)
             )
 
-            match config.ToolButtons with
-            | [] -> ()
-            | xs ->
+            match configuration with
+            | Plain _ | WithToolbar (_, []) -> ()
+            | WithToolbar (_, buttons) ->
+                let (!) label = ToolbarElement(Name = label)
                 gconf.Toolbar <-
-                    config.ToolButtons
+                    buttons
                     |> List.map (function
-                        | BuiltIn Create -> ToolbarElement(Name = "create")
-                        | BuiltIn Cancel -> ToolbarElement(Name = "cancel")
-                        | Template e -> ToolbarElement(Template = Kendo.Template(e.Body?outerHTML))
+                        | Create -> !"create"
+                        | Cancel -> !"cancel"
+                        | Save _ -> !"save"
                     )
                     |> List.toArray
 
-    let renderData config data =
+    let missingFrom keySelector second =
+        let originalKeys =
+            second
+            |> Seq.map keySelector
+            |> Set.ofSeq
+
+        Array.filter (keySelector >> originalKeys.Contains >> not)
+
+    let applyToolButtons (onGrid: (Grid<_> -> _) -> _) data =
+        let sourceData = ref data
+
+        Seq.tryPick (function
+            | Save x -> Some x
+            | _ -> None
+        )
+        >> Option.iter (fun (keySelector, gridActions) ->
+            onGrid (fun grid ->
+                grid.SaveChanges <- (fun () ->
+                    let data = grid.DataSource.Data()
+
+                    JavaScript.Alert "Kung Fu"
+
+                    !sourceData
+                    |> missingFrom keySelector data
+                    |> gridActions.Deleted
+                    
+                    data
+                    |> missingFrom keySelector !sourceData
+                    |> gridActions.Added
+
+                    let changed =
+                        data
+                        |> Array.filter (fun x -> x?dirty)
+                        |>! gridActions.Changed
+
+                    changed
+                    |> Seq.iter (fun x -> x?dirty <- false)
+
+                    sourceData := data
+                    grid.DataSource.Success data
+                )
+            )
+        )
+
+    let renderData configuration data =
+        let config = getConfiguration configuration
+        let data = Seq.toArray data
         let grid = ref None
         let onGrid f = !grid |> Option.iter f
         
@@ -381,11 +464,18 @@ module Grid =
 
         let gridConfig =
             DataSource(
-                Data = Seq.toArray data,
+                Data = data,
                 PageSize = pageSize config.Paging,
                 Schema = Schema(Model schema)
             )
-            |> buildConfig onGrid config
+            |> buildConfig onGrid configuration
 
-        Div []
-        |>! fun el -> grid := Grid(el.Body, gridConfig) |> Some
+        let element = Div []
+
+        grid := Grid(element.Body, gridConfig) |> Some
+
+        match configuration with
+        | Plain _ -> ()
+        | WithToolbar (_, xs) -> applyToolButtons onGrid data xs
+
+        element
