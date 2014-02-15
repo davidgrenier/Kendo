@@ -407,8 +407,8 @@ module Grid =
     let missingFrom keySelector second =
         let originalKeys =
             second
-            |> Seq.map keySelector
-            |> Set.ofSeq
+            |> Array.map keySelector
+            |> Set.ofArray
 
         Array.filter (keySelector >> originalKeys.Contains >> not)
 
@@ -423,26 +423,21 @@ module Grid =
             onGrid (fun grid ->
                 grid.SaveChanges <- (fun () ->
                     let data = grid.DataSource.Data()
-
-                    JavaScript.Alert "Kung Fu"
-
-                    !sourceData
-                    |> missingFrom keySelector data
-                    |> gridActions.Deleted
                     
                     data
                     |> missingFrom keySelector !sourceData
                     |> gridActions.Added
 
-                    let changed =
-                        data
-                        |> Array.filter (fun x -> x?dirty)
-                        |>! gridActions.Changed
+                    !sourceData
+                    |> missingFrom keySelector data
+                    |> gridActions.Deleted
 
-                    changed
+                    data
+                    |> Array.filter (fun x -> x?dirty)
+                    |>! gridActions.Changed
                     |> Seq.iter (fun x -> x?dirty <- false)
 
-                    sourceData := data
+                    sourceData := Array.copy data
                     grid.DataSource.Success data
                 )
             )

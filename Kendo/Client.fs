@@ -99,11 +99,10 @@ let renderData =
     |> G.editable
     |> G.addButton
     |> G.cancelButton
-    |> G.saveButton (fun x -> x.Name + x.LastName) (fun saveActions ->
-        saveActions
-        |> SaveActions.onAdd (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Added ==> " + xs))
-        |> SaveActions.onChange (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Changed ==> " + xs))
-        |> SaveActions.onDelete (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Deleted ==> " + xs))
+    |> G.saveButton (fun x -> x.Name + x.LastName) (
+        SaveActions.onAdd (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Added ==> " + xs))
+        >> SaveActions.onChange (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Changed ==> " + xs))
+        >> SaveActions.onDelete (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Deleted ==> " + xs))
     )
     |> G.renderData
 
