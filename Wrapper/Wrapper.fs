@@ -8,6 +8,11 @@ open IntelliFactory.WebSharper.Formlet
 open WebSharper.Kendo.Extension
 open WebSharper.Kendo.Extension.UI
 
+module Option =
+    let conditional f = function
+        | x when f x -> Some x
+        | _ -> None
+
 let private dropDownConfig choices =
     let choices =
         choices
@@ -115,9 +120,11 @@ module SaveActions =
 
     let internal zero = { Changed = ignore; Deleted = ignore; Added = ignore }
 
-    let onChange f actions = { actions with Changed = f }
-    let onDelete f actions = { actions with Deleted = f }
-    let onAdd f actions = { actions with Added = f }
+    let private (!) f = Option.conditional (Array.isEmpty >> not) >> Option.iter f
+
+    let onChange f actions = { actions with Changed = !f }
+    let onDelete f actions = { actions with Deleted = !f }
+    let onAdd f actions = { actions with Added = !f }
 
 module Schema =
     type Type = String | Number | Date | Bool
@@ -265,7 +272,7 @@ module Grid =
     type ToolButton<'K, 'V> =
         | Create
         | Cancel
-        | Save of (('V -> 'K) * SaveActions.T<'V>)
+        | Save of SaveActions.T<'V>
 
     type Config<'V> =
         {
@@ -334,7 +341,7 @@ module Grid =
     
     let addButton gridConfig = withToolbarButton Create gridConfig
     let cancelButton gridConfig = withToolbarButton Cancel gridConfig
-    let saveButton keySelector configurator = withToolbarButton (Save (keySelector, configurator SaveActions.zero))
+    let saveButton configurator = withToolbarButton (Save (configurator SaveActions.zero))
 
     let paging x gridConfig =
         {
@@ -404,32 +411,33 @@ module Grid =
                     )
                     |> List.toArray
 
-    let missingFrom keySelector second =
+    let missingFrom second =
         let originalKeys =
             second
-            |> Array.map keySelector
+            |> Array.map (fun x -> x?uid)
             |> Set.ofArray
 
-        Array.filter (keySelector >> originalKeys.Contains >> not)
+        Array.filter (fun x -> originalKeys.Contains x?uid |> not)
 
-    let applyToolButtons (onGrid: (Grid<_> -> _) -> _) data =
-        let sourceData = ref data
+    let applyToolButtons (onGrid: (Grid<_> -> _) -> _) =
+        let sourceData = ref [||]
+        onGrid(fun grid -> sourceData := grid.DataSource.Data())
 
         Seq.tryPick (function
             | Save x -> Some x
             | _ -> None
         )
-        >> Option.iter (fun (keySelector, gridActions) ->
+        >> Option.iter (fun gridActions ->
             onGrid (fun grid ->
                 grid.SaveChanges <- (fun () ->
                     let data = grid.DataSource.Data()
                     
                     data
-                    |> missingFrom keySelector !sourceData
+                    |> missingFrom !sourceData
                     |> gridActions.Added
 
                     !sourceData
-                    |> missingFrom keySelector data
+                    |> missingFrom data
                     |> gridActions.Deleted
 
                     data
@@ -471,6 +479,6 @@ module Grid =
 
         match configuration with
         | Plain _ -> ()
-        | WithToolbar (_, xs) -> applyToolButtons onGrid data xs
+        | WithToolbar (_, xs) -> applyToolButtons onGrid xs
 
         element

@@ -11,6 +11,7 @@ module G = Grid
 
 type Philosopher =
     {
+        Id: int
         Name: string
         LastName: string
         Age: int
@@ -20,19 +21,31 @@ type Philosopher =
         Door: Data.Door
     }
 
-    with static member ofPerson (p: Data.Philosopher) =
-            {
-                Name = p.Name
-                LastName = p.LastName
-                Age = p.Age
-                Died = p.Died.ToEcma()
-                Alive = p.Alive
-                Test =
-                    match p.Name with
-                    | "Isaac" -> "House"
-                    | _ -> "Card"
-                Door = p.Door
-            }
+    static member ofPerson (p: Data.Philosopher) =
+        {
+            Id = p.Id
+            Name = p.Name
+            LastName = p.LastName
+            Age = p.Age
+            Died = p.Died.ToEcma()
+            Alive = p.Alive
+            Test =
+                match p.Name with
+                | "Isaac" -> "House"
+                | _ -> "Card"
+            Door = p.Door
+        }
+
+    static member toPerson (p: Philosopher): Data.Philosopher =
+        {
+            Id = p.Id
+            Name = p.Name
+            LastName = p.LastName
+            Age = p.Age
+            Died = p.Died.ToDotNet()
+            Alive = p.Alive
+            Door = Data.Open
+        }
 
 type Test = House | Card
 
@@ -99,10 +112,10 @@ let renderData =
     |> G.editable
     |> G.addButton
     |> G.cancelButton
-    |> G.saveButton (fun x -> x.Name + x.LastName) (
-        SaveActions.onAdd (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Added ==> " + xs))
-        >> SaveActions.onChange (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Changed ==> " + xs))
-        >> SaveActions.onDelete (fun added -> Json.Stringify added |> fun xs -> JavaScript.Alert ("Deleted ==> " + xs))
+    |> G.saveButton (
+        SaveActions.onAdd (Array.map Philosopher.toPerson >> Data.actOn Data.Added)
+        >> SaveActions.onChange (Array.map Philosopher.toPerson >> Data.actOn Data.Updated)
+        >> SaveActions.onDelete (Array.map Philosopher.toPerson >> Data.actOn Data.Removed)
     )
     |> G.renderData
 
