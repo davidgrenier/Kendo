@@ -343,24 +343,28 @@ module Grid =
     let cancelButton gridConfig = withToolbarButton Cancel gridConfig
     let saveButton configurator = withToolbarButton (Save (configurator SaveActions.zero))
 
-    let paging x gridConfig =
-        {
-            gridConfig with
-                Paging =
-                    match x, gridConfig.Paging with
-                    | 0, _ -> None
-                    | x, (None | Some (Paging _)) -> Some (Paging x)
-                    | x, Some (Sizer _) -> Some (Sizer x)
-        }
+    let paging x =
+        onConfig (fun gridConfig ->
+            {
+                gridConfig with
+                    Paging =
+                        match x, gridConfig.Paging with
+                        | 0, _ -> None
+                        | x, (None | Some (Paging _)) -> Some (Paging x)
+                        | x, Some (Sizer _) -> Some (Sizer x)
+            }
+        )
 
     let adjustablePaging gridConfig =
-        {
-            gridConfig with
-                Paging =
-                    gridConfig.Paging
-                    |> Option.coalesce defaultPaging
-                    |> Option.map (fun (Paging x | Sizer x) -> Sizer x)
-        }
+        onConfig (fun gridConfig ->
+            {
+                gridConfig with
+                    Paging =
+                        gridConfig.Paging
+                        |> Option.coalesce defaultPaging
+                        |> Option.map (fun (Paging x | Sizer x) -> Sizer x)
+            }
+        ) gridConfig
             
     type Pageable = { pageSizes: bool }
 
