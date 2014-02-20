@@ -425,7 +425,9 @@ module Grid =
 
     let applyToolButtons (onGrid: (Grid<_> -> _) -> _) =
         let sourceData = ref [||]
-        onGrid(fun grid -> sourceData := grid.DataSource.Data())
+        onGrid(fun grid ->
+            sourceData := grid.DataSource.Data() |> Array.copy
+        )
 
         Seq.tryPick (function
             | Save x -> Some x
