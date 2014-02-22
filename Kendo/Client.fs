@@ -4,10 +4,14 @@ module Kendo.Client
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.EcmaScript
+open IntelliFactory.WebSharper.Piglets
+
 open WebSharper.Kendo
+open WebSharper.Kendo.Extension.UI
 
 module C = Column
 module G = Grid
+module V = Piglet.Validation
 
 type Philosopher =
     {
@@ -47,41 +51,37 @@ type Philosopher =
             Door = Data.Open
         }
 
-type Test = House | Card
+type CardType = MC | Visa
 
-let create() =
-    Controls.dropDown [
-        "House", House
-        "Card", Card
-    ]
+type CC = { Type: CardType; Number: int }
 
-open IntelliFactory.WebSharper.Formlet
+let paymentForm onSubmit content =
+    Piglet.Return (fun typeId num -> { Type = typeId; Number = int num})
+    <*> Piglet.Yield MC
+    <*> (
+        Piglet.Yield content
+        |> V.Is (fun x ->
+            let rx = new RegExp(@"\d{16,18}")
+            rx.Test x
+        ) "Credit card number must be numeric"
+    )
+    |> Piglet.WithSubmit
+    |> Piglet.Run onSubmit
+    |> Piglet.Render (fun cardType number submit ->
+        Div [
+            [
+                MC, "Master Card"
+                Visa, "VISA"
+            ]
+            |> Controls.Select cardType
+            |> Controls.WithLabel "Card Type"
 
-type CC = { Type: string; Number: int }
+            Controls.Input number
+            |> Controls.WithLabel "Number"
 
-let paymentFormlet content =
-    let ccType =
-        [
-            "MC", "Master Card"
-            "Visa", "VISA"
+            Controls.Submit submit
         ]
-    let ccTypeF = 
-        Controls.Select 0 ccType
-        |> Enhance.WithTextLabel "Card Type"
-
-    let numberF = 
-        Controls.Input content
-        |> Formlet.MapElement (fun el -> el.AddClass "test"; el)
-        |> Enhance.WithCssClass "test"
-        |> Enhance.WithTextLabel "Number"
-        |> Validator.IsInt "Credit card number must be numeric"
-        |> Enhance.WithValidationIcon
-
-    Formlet.Yield (fun typeId num -> { Type = typeId; Number = int num })
-    <*> ccTypeF
-    <*> numberF
-    |> Enhance.WithSubmitButton
-    |> Enhance.WithFormContainer
+    )
 
 let renderData =
     G.Default [
@@ -100,8 +100,7 @@ let renderData =
             Popup.create "Testing Window" [] (fun onWindow ->
                 Div [
                     Json.Stringify v
-                    |> paymentFormlet
-                    |> Formlet.Formlet.Run (fun _ -> onWindow Popup.close)
+                    |> paymentForm (fun _ -> onWindow Popup.close)
                 ]
             )
         )
@@ -113,13 +112,12 @@ let renderData =
     |> G.addButton
     |> G.cancelButton
     |> G.saveButton (
-        SaveActions.onAdd (Array.map Philosopher.toPerson >> Data.actOn Data.Added)
-        >> SaveActions.onChange (Array.map Philosopher.toPerson >> Data.actOn Data.Updated)
-        >> SaveActions.onDelete (Array.map Philosopher.toPerson >> Data.actOn Data.Removed)
+        let act action = Array.map Philosopher.toPerson >> Data.actOn action
+        SaveActions.onAdd (act Data.Added)
+        >> SaveActions.onChange (act Data.Updated)
+        >> SaveActions.onDelete (act Data.Removed)
     )
     |> G.renderData
-
-open WebSharper.Kendo.Extension.UI
 
 let menu =
     let conf = MenuConfiguration(fun x -> Json.Stringify x |> JavaScript.Alert)
@@ -140,18 +138,38 @@ let menu =
     ]
     |>! fun data -> Menu(data.Dom, conf) |> ignore
 
-let page() =
-    let grid =
+let renderGrid() =
+    Data.philosophers()
+    |> Seq.map Philosopher.ofPerson
+    |> renderData
+
+type Test = Editing | Grouping
+
+let gridSetup() =
+    Piglet.Yield Editing
+    |> Piglet.Render (fun kind ->
         Div [
-            Data.philosophers()
-            |> Seq.map Philosopher.ofPerson
-            |> renderData
+            [
+                Editing, "Editing"
+                Grouping, "Grouping"
+            ]
+            |> Controls.Select kind
+
+            Div []
+            |> Controls.Show kind (function
+                | Editing -> [renderGrid()]
+                | Grouping -> []
+            )
         ]
+    )
+
+let page() =
     Div [
         menu
-        create()
-        Tabs.createTabs [
-            Tabs.create "Grid" (fun () -> grid)
-            Tabs.create "TreeView" (fun () -> Div [Text "test"])
+        [
+            "Editing", Editing
+            "Grouping", Grouping
         ]
+        |> DropDown.create Editing
+        gridSetup()
     ]

@@ -13,20 +13,25 @@ module Option =
         | x when f x -> Some x
         | _ -> None
 
-let private dropDownConfig choices =
-    let choices =
-        choices
-        |> List.map (fun x -> DropDownValue x)
-        |> List.toArray
+module DropDown =
+    let internal configure current choices =
+        let values =
+            choices
+            |> List.map (fun x -> DropDownValue x)
+            |> List.toArray
 
-    DropDownConfiguration("text", "value", choices)
+        let choice =
+            current
+            |> Option.map (fun v -> List.findIndex (fun (_, x) -> x = v) choices)
 
-module Controls =
-    let dropDown choices =
+        match choice with
+        | None -> DropDownConfiguration("text", "value", values)
+        | Some i -> DropDownConfiguration("text", "value", values, Index = i)
+
+    let create current choices =
         Input []
         |>! OnAfterRender (fun input ->
-            DropDownList(input.Body, dropDownConfig choices)
-            |> ignore
+            DropDownList(input.Body, configure (Some current) choices) |> ignore
         )
 
 module Tabs =
@@ -34,7 +39,7 @@ module Tabs =
 
     let create name content = { Name = name; Content = content }
 
-    let createTabs = function
+    let render = function
         | [] -> failwith "The list must contain at least one tab."
         | head::tail ->
             let li tab = LI [Text tab.Name]
@@ -242,7 +247,7 @@ module Column =
                         column.Editor <- fun (container, options) ->
                             let format = "<input data-bind='value:" + options?field + "'/>"
                             let target = JQuery.JQuery.Of(format).AppendTo(container)
-                            DropDownList(target, dropDownConfig choices)
+                            DropDownList(target, DropDown.configure None choices)
                             |> ignore
             | CommandButton (text, action) ->
                 Column(Command = Command(text, fun e ->

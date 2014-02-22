@@ -113,7 +113,7 @@ module Definition =
                         "dataValueField", T<string>
                         "dataSource", Type.ArrayOf (DropDownValue t)
                     ]
-                Optional = []
+                Optional = ["index", T<int>]
             }
 
     let DropDownList =
@@ -122,6 +122,11 @@ module Definition =
             |+> [
                 Constructor (T<Dom.Element> * DropDownConfiguration t)
                 Constructor (T<JQuery.JQuery> * DropDownConfiguration t)
+            ]
+            |+> Protocol [
+                "change" =! T<obj> ^-> T<unit>
+                "select" =! T<obj> ^-> T<unit>
+                "dataItem" => T<unit> ^-> t
             ]
 
     let ToolButton =
