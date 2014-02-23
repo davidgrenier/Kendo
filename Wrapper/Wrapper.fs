@@ -498,6 +498,4 @@ module Piglet =
     open IntelliFactory.WebSharper.Piglets
 
     module Grid =
-        let rowSelect (stream: Stream<_>) (gridConfig: Grid.T<_>) =
-            gridConfig
-            |> Grid.selectableRow (Success >> stream.Trigger)
+        let rowSelect (stream: Stream<_>) = Grid.selectableRow (Success >> stream.Trigger)

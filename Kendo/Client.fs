@@ -60,10 +60,7 @@ let paymentForm onSubmit content =
     <*> Piglet.Yield MC
     <*> (
         Piglet.Yield content
-        |> V.Is (fun x ->
-            let rx = new RegExp(@"\d{16,18}")
-            rx.Test x
-        ) "Credit card number must be numeric"
+        |> V.Is (RegExp(@"\d{16,18}").Test) "Credit card number must be numeric"
     )
     |> Piglet.WithSubmit
     |> Piglet.Run onSubmit
@@ -73,8 +70,16 @@ let paymentForm onSubmit content =
             |> Controls.Select cardType
             |> Controls.WithLabel "Card Type"
 
+            Br[]
+
             Controls.Input number
             |> Controls.WithLabel "Number"
+
+            Div []
+            |> Controls.ShowErrors number (fun errs ->
+                errs
+                |> Seq.map (fun x -> Span [Text x])
+            )
 
             Controls.Submit submit
         ]
