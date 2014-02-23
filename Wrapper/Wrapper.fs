@@ -274,7 +274,7 @@ module Grid =
         | Paging of int
         | Sizer of int
 
-    type ToolButton<'K, 'V> =
+    type ToolButton<'V> =
         | Create
         | Cancel
         | Save of SaveActions.T<'V>
@@ -293,9 +293,9 @@ module Grid =
             Editable: bool
         }
 
-    type T<'K, 'V> =
+    type T<'V> =
         | Plain of Config<'V>
-        | WithToolbar of Config<'V> * ToolButton<'K, 'V> list
+        | WithToolbar of Config<'V> * ToolButton<'V> list
 
     let defaultPaging = Some (Paging 10)
     let pageSize = function
@@ -462,7 +462,7 @@ module Grid =
             )
         )
 
-    let renderData configuration data =
+    let render data configuration =
         let config = getConfiguration configuration
         let data = Seq.toArray data
         let grid = ref None
@@ -493,3 +493,11 @@ module Grid =
         | WithToolbar (_, xs) -> applyToolButtons onGrid xs
 
         element
+
+module Piglet =
+    open IntelliFactory.WebSharper.Piglets
+
+    module Grid =
+        let rowSelect (stream: Stream<_>) (gridConfig: Grid.T<_>) =
+            gridConfig
+            |> Grid.selectableRow (Success >> stream.Trigger)

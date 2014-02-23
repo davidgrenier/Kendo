@@ -69,10 +69,7 @@ let paymentForm onSubmit content =
     |> Piglet.Run onSubmit
     |> Piglet.Render (fun cardType number submit ->
         Div [
-            [
-                MC, "Master Card"
-                Visa, "VISA"
-            ]
+            [MC, "Master Card"; Visa, "VISA"]
             |> Controls.Select cardType
             |> Controls.WithLabel "Card Type"
 
@@ -83,7 +80,7 @@ let paymentForm onSubmit content =
         ]
     )
 
-let renderData =
+let philoGrid data =
     G.Default [
         C.field "Name" "Name" |> C.width 120 |> C.readonly
         C.field "LastName" "Last Name" |> C.readonly
@@ -117,7 +114,24 @@ let renderData =
         >> SaveActions.onChange (act Data.Updated)
         >> SaveActions.onDelete (act Data.Removed)
     )
-    |> G.renderData
+    |> G.render data
+
+let dependentPhilo data =
+    Piglet.YieldFailure()
+    |> Piglet.Render (fun row ->
+        Div [
+            G.Default [
+                C.field "Name" "Name"
+                C.field "LastName" "LastName"
+            ]
+            |> Piglet.Grid.rowSelect row
+            |> G.render data
+
+            Div[]
+            |> Controls.ShowString row (fun x -> x.Name)
+            |> Controls.WithLabel "Your name is:"
+        ]
+    )
 
 let menu =
     let conf = MenuConfiguration(fun x -> Json.Stringify x |> JavaScript.Alert)
@@ -138,14 +152,9 @@ let menu =
     ]
     |>! fun data -> Menu(data.Dom, conf) |> ignore
 
-let renderGrid() =
-    Data.philosophers()
-    |> Seq.map Philosopher.ofPerson
-    |> renderData
-
 type Test = Editing | Grouping
 
-let gridSetup() =
+let gridKind() =
     Piglet.Yield Editing
     |> Piglet.Render (fun kind ->
         Div [
@@ -156,9 +165,14 @@ let gridSetup() =
             |> Controls.Select kind
 
             Div []
-            |> Controls.Show kind (function
-                | Editing -> [renderGrid()]
-                | Grouping -> []
+            |> Controls.Show kind (fun kind ->
+                let data =
+                    Data.philosophers()
+                    |> Seq.map Philosopher.ofPerson
+                
+                match kind with
+                | Editing -> [philoGrid data]
+                | Grouping -> [dependentPhilo data]
             )
         ]
     )
@@ -171,5 +185,5 @@ let page() =
             "Grouping", Grouping
         ]
         |> DropDown.create Editing
-        gridSetup()
+        gridKind()
     ]
