@@ -139,6 +139,12 @@ module Definition =
                 ]
         }
 
+    let EditableConfiguration =
+        Pattern.Config "kendo.ui.EditableConfiguration" {
+            Required = ["confirmation", T<bool>]
+            Optional = []
+        }
+
     let GridConfiguration =
         Generic / fun t ->
             Pattern.Config "kendo.ui.GridConfiguration" {
@@ -152,7 +158,7 @@ module Definition =
                         "resizable", T<bool>
                         "filterable", T<bool>
                         "reorderable", T<bool>
-                        "editable", T<bool>
+                        "editable", EditableConfiguration.Type
                         "groupable", T<bool>
                         "scrollable", T<bool>
                         "sortable", T<bool>
@@ -253,6 +259,7 @@ module Definition =
                 Window
                 MenuConfiguration
                 Menu
+                EditableConfiguration
                 Generic - Column
                 Generic - GridConfiguration
                 Generic - Grid

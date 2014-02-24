@@ -380,45 +380,48 @@ module Grid =
             |> Seq.map (Column.fromMapping onGrid)
             |> Seq.toArray
 
-        GridConfiguration (
-            Columns = columns,
-            Scrollable = config.Scrollable,
-            Sortable = config.Sortable,
-            DataSource = dataSource,
-            Resizable = config.Resizable,
-            Filterable = config.Filterable,
-            Reorderable = config.Reorderable,
-            Editable = true,
-            Groupable = config.Groupable
+        let gconf =
+            GridConfiguration (
+                Columns = columns,
+                Scrollable = config.Scrollable,
+                Sortable = config.Sortable,
+                DataSource = dataSource,
+                Resizable = config.Resizable,
+                Filterable = config.Filterable,
+                Reorderable = config.Reorderable,
+                Editable = EditableConfiguration false,
+                Groupable = config.Groupable
+            )
+
+        config.Paging
+        |> Option.iter (function
+            | Paging x -> gconf.Pageable <- true
+            | Sizer x -> gconf.Pageable <- { pageSizes = true }
         )
-        |>! fun gconf ->
-            config.Paging
-            |> Option.iter (function
-                | Paging x -> gconf.Pageable <- true
-                | Sizer x -> gconf.Pageable <- { pageSizes = true }
-            )
 
-            config.Selectable
-            |> Option.iter (fun selectable ->
-                let action =
-                    match selectable with
-                    | Row action -> gconf.Selectable <- "row"; action
-                    | Cell action -> gconf.Selectable <- "cell"; action
-                gconf.Change <- fun _ -> onGrid (fun grid -> grid.Select() |> grid.DataItem |> action)
-            )
+        config.Selectable
+        |> Option.iter (fun selectable ->
+            let action =
+                match selectable with
+                | Row action -> gconf.Selectable <- "row"; action
+                | Cell action -> gconf.Selectable <- "cell"; action
+            gconf.Change <- fun _ -> onGrid (fun grid -> grid.Select() |> grid.DataItem |> action)
+        )
 
-            match configuration with
-            | Plain _ | WithToolbar (_, []) -> ()
-            | WithToolbar (_, buttons) ->
-                let (!) label = ToolbarElement(Name = label)
-                gconf.Toolbar <-
-                    buttons
-                    |> List.map (function
-                        | Create -> !"create"
-                        | Cancel -> !"cancel"
-                        | Save _ -> !"save"
-                    )
-                    |> List.toArray
+        match configuration with
+        | Plain _ | WithToolbar (_, []) -> ()
+        | WithToolbar (_, buttons) ->
+            let (!) label = ToolbarElement(Name = label)
+            gconf.Toolbar <-
+                buttons
+                |> List.map (function
+                    | Create -> !"create"
+                    | Cancel -> !"cancel"
+                    | Save _ -> !"save"
+                )
+                |> List.toArray
+
+        gconf
 
     let missingFrom second =
         let originalKeys =
