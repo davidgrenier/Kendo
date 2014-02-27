@@ -113,6 +113,7 @@ let philoGrid data =
     |> G.editable
     |> G.addButton
     |> G.cancelButton
+    |> G.adjustablePaging
     |> G.saveButton (
         let act action = Array.map Philosopher.toPerson >> Data.actOn action
         SaveActions.onAdd (act Data.Added)
@@ -133,8 +134,7 @@ let dependentPhilo data =
             |> G.render data
 
             Div[]
-            |> Controls.ShowString row (fun x -> x.Name)
-            |> Controls.WithLabel "Your name is:"
+            |> Controls.ShowString row (fun x -> "Your name is: " + x.Name)
         ]
     )
 

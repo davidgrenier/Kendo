@@ -371,7 +371,7 @@ module Grid =
             }
         ) gridConfig
             
-    type Pageable = { pageSizes: bool }
+    type Pageable = { pageSizes: int [] }
 
     let buildConfig (onGrid: (Grid<_> -> _) -> _) configuration dataSource =
         let config = getConfiguration configuration
@@ -396,7 +396,7 @@ module Grid =
         config.Paging
         |> Option.iter (function
             | Paging x -> gconf.Pageable <- true
-            | Sizer x -> gconf.Pageable <- { pageSizes = true }
+            | Sizer x -> gconf.Pageable <- { pageSizes = [|5; 10; 20; 30; 50; 75; 100|] }
         )
 
         config.Selectable
