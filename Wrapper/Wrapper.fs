@@ -278,6 +278,7 @@ module Grid =
         | Create
         | Cancel
         | Save of SaveActions.T<'V>
+        | Label of string
 
     type Config<'V> =
         {
@@ -340,10 +341,11 @@ module Grid =
         | WithToolbar (gridConfig, buttons) ->
             let buttons =
                 kind :: buttons
-                |> Seq.distinctBy (function Cancel -> 0 | Create -> 1 | Save _ -> 2)
+                |> Seq.distinctBy (function Cancel -> 0 | Create -> 1 | Save _ -> 2 | Label _ -> 3)
                 |> Seq.toList
             WithToolbar (gridConfig, buttons)
     
+    let addToolbarTemplate (el: Element) gridConfig = withToolbarButton (Label el.Html) gridConfig
     let addButton gridConfig = withToolbarButton Create gridConfig
     let cancelButton gridConfig = withToolbarButton Cancel gridConfig
     let saveButton configurator = withToolbarButton (Save (configurator SaveActions.zero))
@@ -418,6 +420,7 @@ module Grid =
                     | Create -> !"create"
                     | Cancel -> !"cancel"
                     | Save _ -> !"save"
+                    | Label markup -> ToolbarElement(Template = markup)
                 )
                 |> List.toArray
 
@@ -433,9 +436,7 @@ module Grid =
 
     let applyToolButtons (onGrid: (Grid<_> -> _) -> _) =
         let sourceData = ref [||]
-        onGrid(fun grid ->
-            sourceData := grid.DataSource.Data() |> Array.copy
-        )
+        onGrid(fun grid -> sourceData := grid.DataSource.Data() |> Array.copy)
 
         Seq.tryPick (function
             | Save x -> Some x

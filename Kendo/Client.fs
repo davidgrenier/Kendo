@@ -130,6 +130,7 @@ let dependentPhilo data =
                 C.field "Name" "Name"
                 C.field "LastName" "LastName"
             ]
+            |> G.addToolbarTemplate (Span [Text "Hello World!"])
             |> Piglet.Grid.rowSelect row
             |> G.render data
 
