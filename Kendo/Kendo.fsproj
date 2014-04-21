@@ -61,20 +61,16 @@
       <HintPath>..\packages\WebSharper.Piglets.0.1.62.116\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="KendoWrapper">
+      <HintPath>..\..\..\Users\dgrenier\Desktop\KendoWrapper.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Web" />
-    <ProjectReference Include="..\Extension\WebSharper.Kendo.Extension.fsproj">
-      <Name>WebSharper.Kendo.Extension</Name>
-      <Project>{80b74471-b493-42e9-b374-086d1943446a}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Wrapper\WebSharper.Kendo.fsproj">
-      <Name>WebSharper.Kendo</Name>
-      <Project>{9bc48a80-0401-4080-a37e-d90dfd5619af}</Project>
-      <Private>True</Private>
-    </ProjectReference>
+    <Reference Include="WebSharper.Kendo">
+      <HintPath>..\Wrapper\bin\WebSharper.Kendo.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

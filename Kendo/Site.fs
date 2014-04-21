@@ -3,29 +3,31 @@ namespace Kendo
 open IntelliFactory.Html
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Sitelets
-open WebSharper.Kendo.Extension
-open WebSharper.Kendo
+open KendoWrapper
+//open WebSharper.Kendo.Extension
+//open WebSharper.Kendo
 
 type Action =
     | [<CompiledName "">] EN
     | FR
 
-[<Require(typeof<Themes.Silver>); Require(typeof<Culture.French>)>]
+//[<Require(typeof<Themes.Silver>); Require(typeof<Culture.French>)>]
 type FrenchPage() =
     inherit Web.Control()
     
     [<JS>]
     override this.Body =
-        Kendo.Culture "fr-CA"
+        kendo.culture "fr-CA"
         Client.page() :> _
 
-[<Require(typeof<Themes.Silver>); Require(typeof<Culture.English>)>]
+//http://cdn.kendostatic.com/2013.3.1119/styles/kendo.silver.min.css
+//[<Require(typeof<Themes.Silver>); Require(typeof<Culture.English>)>]
 type EnglishPage() =
     inherit Web.Control()
 
     [<JS>]
     override this.Body =
-        Kendo.Culture "en-CA"
+        kendo.culture "en-CA"
         Client.page() :> _
 
 [<Sealed>]

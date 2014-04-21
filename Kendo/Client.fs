@@ -6,11 +6,11 @@ open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.EcmaScript
 open IntelliFactory.WebSharper.Piglets
 
-open WebSharper.Kendo
-open WebSharper.Kendo.Extension.UI
+open WebSharper.KendoWrapper
 
 module C = Column
 module G = Grid
+module M = Menu
 module V = Piglet.Validation
 
 type Philosopher =
@@ -139,24 +139,29 @@ let dependentPhilo data =
         ]
     )
 
-let menu =
-    let conf = MenuConfiguration(fun x -> Json.Stringify x |> JavaScript.Alert)
+type Actions =
+    | Test
+    | Toto
+    | Deep
 
-    UL [
-        LI [
-            Text "Menu1"
-        ] -- UL [
-            LI [Text "test"]
-            LI [Text "toto"]
+let menu =
+    [
+        M.choices "Menu1" [
+            M.selection "test" Test
+            M.selection "toto" Toto
         ]
-        LI [
-            Text "Menu1"
-        ] -- UL [
-            LI [Text "test"] -- UL [LI [Text "deep"]]
-            LI [Text "toto"]
+        M.choices "Menu2" [
+            M.choices "Nested" [
+                M.selection "deep" Deep
+            ]
+            M.selection "toto" Toto
         ]
     ]
-    |>! fun data -> Menu(data.Dom, conf) |> ignore
+    |> M.create (function
+        | Test -> JavaScript.Alert "Test clicked"
+        | Toto -> JavaScript.Alert "Toto clicked"
+        | Deep -> JavaScript.Alert "Deep clicked"
+    )
 
 type Test = Editing | Grouping
 
@@ -164,11 +169,10 @@ let gridKind() =
     Piglet.Yield Editing
     |> Piglet.Render (fun kind ->
         Div [
-            [
+            Controls.Select kind [
                 Editing, "Editing"
                 Grouping, "Grouping"
             ]
-            |> Controls.Select kind
 
             Div []
             |> Controls.Show kind (fun kind ->

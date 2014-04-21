@@ -45,26 +45,30 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\WebSharper.2.5.98.29\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.98.29\build\WebSharper.targets')" />
   <ItemGroup>
     <Compile Include="Pervasives.fs" />
-    <Compile Include="Wrapper.fs" />
+    <Compile Include="KendoWrapper.fs" />
     <None Include="packages.config" />
+    <Compile Include="Wrapper.fs" />
+    <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.Piglets">
-      <HintPath>..\packages\WebSharper.Piglets.0.1.62.116\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
+      <HintPath>..\packages\WebSharper.Piglets.0.1.74.133\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="IntelliFactory.WebSharper.TypeScript.Lib">
+      <HintPath>..\..\..\Users\dgrenier\Desktop\IntelliFactory.WebSharper.TypeScript.Lib.dll</HintPath>
+    </Reference>
+    <Reference Include="KendoWrapper">
+      <HintPath>..\..\..\Users\dgrenier\Desktop\KendoWrapper.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="WebSharper.Kendo.Extension">
-      <HintPath>bin\WebSharper.Kendo.Extension.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>
