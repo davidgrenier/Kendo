@@ -1,5 +1,7 @@
 ### Kendo Wrapper
 
+Note that we'll be phasing out our use of our own WIG Extension and will instead opt for [IntelliFactory's premium feed](http://websharper.com/downloads).
+
 This is a WebSharper extension for [KendoUI](http://demos.kendoui.com/web/overview/index.html) web.
 
 Also contains an F# friendly wrapper to isolate your codebase from the imperative nature of the Kendo API.
