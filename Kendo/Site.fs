@@ -9,7 +9,7 @@ type Action =
     | [<CompiledName "">] EN
     | FR
 
-//[<Require(typeof<Themes.Silver>); Require(typeof<Culture.French>)>]
+[<Require(typeof<Themes.Silver>); Require(typeof<Culture.French>)>]
 type FrenchPage() =
     inherit Web.Control()
     
@@ -18,8 +18,7 @@ type FrenchPage() =
         Culture.french()
         Client.page() :> _
 
-//http://cdn.kendostatic.com/2013.3.1119/styles/kendo.silver.min.css
-//[<Require(typeof<Themes.Silver>); Require(typeof<Culture.English>)>]
+[<Require(typeof<Themes.Silver>); Require(typeof<Culture.English>)>]
 type EnglishPage() =
     inherit Web.Control()
 

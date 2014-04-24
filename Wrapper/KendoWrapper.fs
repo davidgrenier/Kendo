@@ -556,3 +556,14 @@ module Piglet =
 module Culture =
     let french() = Pervasives.culture "fr-CA"
     let english() = Pervasives.culture "en-CA"
+
+    type English() =
+        inherit Resources.BaseResource("http://cdn.kendostatic.com/2014.1.318/js/cultures/kendo.culture.en-CA.min.js")
+
+    type French() =
+        inherit Resources.BaseResource("http://cdn.kendostatic.com/2014.1.318/js/cultures/kendo.culture.fr-CA.min.js")
+
+module Themes =
+    open IntelliFactory.WebSharper.KendoUI.Resources
+
+    type Silver = SilverTheme
