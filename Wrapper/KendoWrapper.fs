@@ -4,9 +4,9 @@ module WebSharper.KendoWrapper
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.Formlet
+open IntelliFactory.WebSharper.KendoUI
 
-type K = KendoWrapper
-type UI = K.kendo.ui
+let create<'T>(): 'T = As<'T>(obj())
 
 module Option =
     let conditional f = function
@@ -34,11 +34,11 @@ module Menu =
     let create (f: 'a -> unit) (structure: Item<'a> list) =
         let el = List.map build structure |> UL
         let configuration =
-            UI.MenuOptions(_select = fun x ->
+            ui.MenuOptions(_select = fun x ->
                 x.item?ValueTag
                 |> Option.iter f
             )
-        UI.Menu.Create(As el.Dom, configuration) |> ignore
+        ui.Menu.Create(As el.Dom, configuration) |> ignore
         el
 
 module DropDown =
@@ -55,15 +55,15 @@ module DropDown =
 
         match current with
         | None ->
-            UI.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values)
+            ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values)
         | Some v ->
             let i = List.findIndex (fun (_, x) -> x = v) choices
-            UI.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values, index = float i)
+            ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values, index = float i)
 
     let create current choices =
         Input []
         |>! OnAfterRender (fun input ->
-            UI.DropDownList.Create(As input.Body, configure (Some current) choices) |> ignore
+            ui.DropDownList.Create(As input.Body, configure (Some current) choices) |> ignore
         )
 
 module Tabs =
@@ -94,13 +94,13 @@ module Tabs =
                 yield! headContent :: contents
             ]
             |>! fun el ->
-                let animation = UI.TabStripAnimation(close = As false, _open = As false)
-                let option = UI.TabStripOptions(animation = animation)
-                UI.TabStrip.Create(As el.Body, option)
+                let animation = ui.TabStripAnimation(close = As false, _open = As false)
+                let option = ui.TabStripOptions(animation = animation)
+                ui.TabStrip.Create(As el.Body, option)
                 |> ignore
 
 module Popup =
-    type Window = UI.Window
+    type Window = ui.Window
     type T =
         {
             Content: ((Window.T -> unit) -> unit) -> Element
@@ -122,7 +122,7 @@ module Popup =
         let actOn f = !window |> Option.iter f
         
         let config =
-            UI.WindowOptions(
+            ui.WindowOptions(
                 title = popup.Title,
                 width = string popup.Width + "px",
                 close = (fun _ -> actOn close),
@@ -257,14 +257,14 @@ module Column =
     
     let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some (templateFunc c) })
     let formatWith templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
-    let shortDateFormat x = formatWithf (fun f v -> K.kendo.toString(As<TypeScript.Lib.Date>((?) v f.Field), "d")) x
-    let longDateFormat x = formatWithf (fun f v -> K.kendo.toString(As<TypeScript.Lib.Date>((?) v f.Field), "D")) x
+    let shortDateFormat x = formatWithf (fun f v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "d")) x
+    let longDateFormat x = formatWithf (fun f v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "D")) x
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
-    let rightAligned x = withClass "rightAligned" x
-    let centered x = withClass "centered" x
+    let rightAligned x = withClass "gridNumericValue" x
+    let centered x = withClass "gridCenteredValue" x
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
-    let percentFormat precision x = rightAligned x |> formatWithf (fun f v -> K.kendo.toString(((?) v f.Field: float), "p" + string precision))
+    let percentFormat precision x = rightAligned x |> formatWithf (fun f v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
 
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
@@ -274,11 +274,11 @@ module Column =
     let date title name = field title name |> typed Schema.Date
     let bool title name = field title name |> typed Schema.Bool
 
-    let fromMapping (onGrid: (UI.Grid.T -> _) -> _) col =
+    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) col =
         let column =
             match col.Content with
             | Field f ->
-                UI.GridColumn(field = f.Field)
+                ui.GridColumn(field = f.Field)
                 |>! fun column ->
                     Option.iter (fun f -> column.format <- f) f.Format
                     Option.iter (fun t -> column.template <- t) f.Template
@@ -288,11 +288,11 @@ module Column =
                         column.editor <- fun (container, options) ->
                             let format = "<input data-bind='value:" + options?field + "'/>"
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
-                            UI.DropDownList.Create(As target, DropDown.configure None choices)
+                            ui.DropDownList.Create(As target, DropDown.configure None choices)
                             |> ignore
             | CommandButton (text, action) ->
                 let command =
-                    UI.GridColumnCommandItem(name = text, click = As (fun e ->
+                    ui.GridColumnCommandItem(name = text, click = As (fun e ->
                             onGrid (fun grid ->
                                 JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
                                 |> As<TypeScript.Lib.Element>
@@ -302,7 +302,7 @@ module Column =
                             )
                         )
                     )
-                UI.GridColumn(command = [|command|])
+                ui.GridColumn(command = [|command|])
 
         column.title <- col.Title
         Option.iter (fun a -> column.attributes <- a) col.Attributes
@@ -418,7 +418,7 @@ module Grid =
             }
         ) gridConfig
 
-    let buildConfig (onGrid: (UI.Grid.T -> _) -> _) configuration dataSource =
+    let buildConfig (onGrid: (ui.Grid.T -> _) -> _) configuration dataSource =
         let config = getConfiguration configuration
         let columns =
             config.Columns
@@ -426,7 +426,7 @@ module Grid =
             |> Seq.toArray
 
         let gconf =
-            UI.GridOptions (
+            ui.GridOptions (
                 columns = columns,
                 scrollable = As config.Scrollable,
                 sortable = As config.Sortable,
@@ -434,7 +434,7 @@ module Grid =
                 resizable = config.Resizable,
                 filterable = As config.Filterable,
                 reorderable = config.Reorderable,
-                editable = UI.GridEditable(confirmation = false),
+                editable = ui.GridEditable(confirmation = false),
                 groupable = As config.Groupable
             )
 
@@ -442,7 +442,7 @@ module Grid =
         |> Option.iter (function
             | Paging x -> gconf.pageable <- As true
             | Sizer x ->
-                gconf.pageable <- UI.GridPageable(pageSizes = [|5; 10; 20; 30; 50; 75; 100|])
+                gconf.pageable <- ui.GridPageable(pageSizes = [|5; 10; 20; 30; 50; 75; 100|])
         )
 
         config.Selectable
@@ -457,14 +457,14 @@ module Grid =
         match configuration with
         | Plain _ | WithToolbar (_, []) -> ()
         | WithToolbar (_, buttons) ->
-            let (!) label = UI.GridToolbarItem(name = label)
+            let (!) label = ui.GridToolbarItem(name = label)
             gconf.toolbar <-
                 buttons
                 |> List.map (function
                     | Create -> !"create"
                     | Cancel -> !"cancel"
                     | Save _ -> !"save"
-                    | Label markup -> UI.GridToolbarItem(template = markup)
+                    | Label markup -> ui.GridToolbarItem(template = markup)
                 )
                 |> List.toArray
 
@@ -478,7 +478,7 @@ module Grid =
 
         Array.filter (fun x -> originalKeys.Contains x?uid |> not)
 
-    let applyToolButtons (onGrid: (UI.Grid.T -> _) -> _) =
+    let applyToolButtons (onGrid: (ui.Grid.T -> _) -> _) =
         let sourceData = ref [||]
         onGrid(fun grid -> sourceData := grid.dataSource.data() |> As |> Array.copy)
 
@@ -509,6 +509,9 @@ module Grid =
                 )
             )
         )
+        
+    type Schem = { model: obj }
+    type Test = { data: obj; pageSize: float; schema: Schem }
 
     let render data configuration =
         let config = getConfiguration configuration
@@ -525,16 +528,18 @@ module Grid =
             |> Schema.create config.Editable
 
         let gridConfig =
-            K.kendo.data1.DataSourceOptions(
-                data = data,
-                pageSize = float (pageSize config.Paging),
-                schema = K.kendo.data1.DataSourceSchema(model = schema)
-            )
+            create<data1.DataSourceOptions>()
+            |>! fun x ->
+                x.data <- data
+                x.pageSize <- float (pageSize config.Paging)
+                x.schema <-
+                    create<data1.DataSourceSchema>()
+                    |>! fun x -> x.model <- schema
             |> buildConfig onGrid configuration
 
         let element = Div []
 
-        grid := UI.Grid.Create(As element.Body, gridConfig) |> Some
+        grid := ui.Grid.Create(As element.Body, gridConfig) |> Some
 
         match configuration with
         | Plain _ -> ()
@@ -547,3 +552,7 @@ module Piglet =
 
     module Grid =
         let rowSelect (stream: Stream<_>) = Grid.selectableRow (Success >> stream.Trigger)
+
+module Culture =
+    let french() = Pervasives.culture "fr-CA"
+    let english() = Pervasives.culture "en-CA"

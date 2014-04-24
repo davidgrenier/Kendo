@@ -3,9 +3,7 @@ namespace Kendo
 open IntelliFactory.Html
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Sitelets
-open KendoWrapper
-//open WebSharper.Kendo.Extension
-//open WebSharper.Kendo
+open WebSharper.KendoWrapper
 
 type Action =
     | [<CompiledName "">] EN
@@ -17,7 +15,7 @@ type FrenchPage() =
     
     [<JS>]
     override this.Body =
-        kendo.culture "fr-CA"
+        Culture.french()
         Client.page() :> _
 
 //http://cdn.kendostatic.com/2013.3.1119/styles/kendo.silver.min.css
@@ -27,7 +25,7 @@ type EnglishPage() =
 
     [<JS>]
     override this.Body =
-        kendo.culture "en-CA"
+        Culture.english()
         Client.page() :> _
 
 [<Sealed>]

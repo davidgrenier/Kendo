@@ -1,11 +1,11 @@
 ﻿.k-grid td {
     padding: .1em .6em;
 }
-.rightAligned {
+.gridNumericValue {
     text-align: right;
 }
 
-.centered {
+.gridCenteredValue {
     text-align: center;
 }
 
