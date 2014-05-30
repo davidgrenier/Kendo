@@ -6,7 +6,7 @@ open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.EcmaScript
 open IntelliFactory.WebSharper.Piglets
 
-open WebSharper.KendoWrapper
+open WebSharper.Kendo
 
 module C = Column
 module G = Grid

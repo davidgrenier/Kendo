@@ -1,5 +1,5 @@
 ﻿[<JS>]
-module WebSharper.KendoWrapper
+module WebSharper.Kendo
 
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
