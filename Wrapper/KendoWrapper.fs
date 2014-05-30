@@ -21,15 +21,15 @@ module Menu =
     let selection label value = Selection(label, value)
     let choices label items = Choices(label, items)
     
-    let private setTag v (el: Element) = el.Body?ValueTag <- v; el
+    let private setTag v (el: Element) = el.Body?ValueTag <- v
 
     let rec private build = function
         | Selection(label, v) ->
-            LI [Text label] |> setTag (Some v)
+            LI [Text label] |>! setTag (Some v)
         | Choices(label, items) ->
             let items = List.map build items
             LI [Text label] -- UL items
-            |> setTag None
+            |>! setTag None
 
     let create (f: 'a -> unit) (structure: Item<'a> list) =
         let el = List.map build structure |> UL
@@ -52,7 +52,6 @@ module DropDown =
             choices
             |> List.map (fun (k, v) -> { text = k; value = v })
             |> List.toArray
-
         match current with
         | None ->
             ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values)
@@ -270,9 +269,9 @@ module Column =
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
     let typed typ = applySchema (Schema.typed typ)
-    let numeric title name = field title name |> rightAligned |> typed Schema.Number
-    let date title name = field title name |> typed Schema.Date
-    let bool title name = field title name |> typed Schema.Bool
+    let numeric name title = field name title |> rightAligned |> typed Schema.Number
+    let date name title = field name title |> typed Schema.Date
+    let bool name title = field name title |> typed Schema.Bool
 
     let fromMapping (onGrid: (ui.Grid.T -> _) -> _) col =
         let column =
@@ -480,7 +479,7 @@ module Grid =
 
     let applyToolButtons (onGrid: (ui.Grid.T -> _) -> _) =
         let sourceData = ref [||]
-        onGrid(fun grid -> sourceData := grid.dataSource.data() |> As |> Array.copy)
+        onGrid(fun grid -> sourceData := grid.options.dataSource?data |> As |> Array.copy)
 
         Seq.tryPick (function
             | Save x -> Some x
@@ -534,7 +533,10 @@ module Grid =
                 x.pageSize <- float (pageSize config.Paging)
                 x.schema <-
                     create<data1.DataSourceSchema>()
-                    |>! fun x -> x.model <- schema
+                    |>! fun x ->
+                        x.model <-
+                            create<data1.DataSourceSchemaModel>()
+                            |>! fun y -> y.fields <- schema
             |> buildConfig onGrid configuration
 
         let element = Div []
@@ -546,6 +548,143 @@ module Grid =
         | WithToolbar (_, xs) -> applyToolButtons onGrid xs
 
         element
+
+module TreeView =
+    type Content<'T> =
+        | Children of List<Node<'T>>
+        | Value of 'T * bool
+
+    and Node<'T> = 
+        internal {
+            Label: string
+            Value: Content<'T>
+        }
+
+    type private T<'T> = 
+        {
+            text: string
+            value: Option<'T>
+            items: T<'T> []
+            ``checked``: bool
+        }
+
+    type ChangeType<'T> = Checked of 'T | Unchecked of 'T
+
+    type Config<'T> =
+        {
+            DataSource: Node<'T> list
+            ChangeAction: Option<ChangeType<'T> list -> unit>
+            Expanded: bool
+            Checkboxes: Option<bool>
+        }
+
+    let disableExpand config = { config with Expanded = false }
+
+    let private node label value =
+        {
+            Label = label
+            Value = value
+        }
+
+    let rec private buildDataSource data =
+        data
+        |> List.map (fun x ->
+            match x.Value with
+            | Children nodes -> 
+                {
+                    text = x.Label
+                    value = None
+                    items = buildDataSource nodes
+                    ``checked`` = false
+                }
+            | Value (value, checkd) ->
+                {
+                    text = x.Label
+                    value = Some value
+                    items = [||]
+                    ``checked`` = checkd
+                }
+        )
+        |> Seq.toArray
+
+    let private create checkboxes sourceData  =
+        {
+            DataSource = sourceData
+            ChangeAction = None
+            Expanded = true
+            Checkboxes = checkboxes
+        }
+
+    let rec filterCheckedNodes data =
+        seq {
+            for node in data do
+                if node?``checked`` then
+                    yield node?text
+                yield! filterCheckedNodes node?items
+        }
+
+    let rec private backup dataSource =
+        seq {
+            for node in dataSource do
+                match node.value with
+                | Some v ->
+                    yield v, node.``checked``
+                | None ->
+                    yield! backup node.items
+        } |> Set.ofSeq
+        
+    let render config = 
+        let dataSource = data1.HierarchicalDataSource.Create ()    
+        dataSource.options.data <- buildDataSource config.DataSource
+        dataSource.init()
+
+        let options = ui.TreeViewOptions(dataSource = dataSource)
+
+        options.loadOnDemand <- false
+        config.Checkboxes
+        |> Option.iter (fun cascade -> options.checkboxes <- ui.TreeViewCheckboxes(checkChildren = cascade))
+
+        let element = Div[]
+        let treeView = ui.TreeView.Create(As element.Body, options) 
+        
+        if config.Expanded then
+            treeView.expand ".k-item"
+
+        let original = backup ((dataSource.view()).toJSON() |> As<T<_> []>) |> ref
+
+        config.ChangeAction
+        |> Option.iter (fun action ->
+            dataSource.bind ("change", (fun () ->
+                    let newVersion = backup ((dataSource.view()).toJSON() |> As<T<_> []>)
+                    let changes = newVersion - !original
+                    original := newVersion
+                    changes
+                    |> Seq.map (function
+                        | v, true -> Checked v
+                        | v, _ -> Unchecked v
+                    )
+                    |> Seq.toList
+                    |> function [] -> () | xs -> action xs
+                ) |> As
+            )
+            |> ignore
+        )
+
+        element
+
+    module Checkable =
+        let leaf label value checkd = node label (Value (value, checkd))
+        let node label children = node label (Children children)
+            
+        let withoutCascade config = { config with Checkboxes = Some false }
+        let create dataSource = create (Some true) dataSource
+        let changeAction action config = { config with ChangeAction = Some action }
+
+    module Uncheckable =
+        let node label children = Checkable.node label children
+        let leaf label value = Checkable.leaf label value false
+
+        let create dataSource = create None dataSource
 
 module Piglet =
     open IntelliFactory.WebSharper.Piglets

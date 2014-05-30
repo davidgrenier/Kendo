@@ -187,7 +187,37 @@ let gridKind() =
         ]
     )
 
+module T = TreeView
+
+let groupValBy valueF keyF elements =
+   elements
+   |> Seq.groupBy keyF
+   |> Seq.map (fun (key, values) -> key, values |> Seq.map valueF)
+
+let rec build path tokensLists =
+    tokensLists
+    |> List.choose (function
+        | [] -> None
+        | parent :: child -> Some (parent, child)
+    ) 
+    |> groupValBy snd fst
+    |> Seq.map (fun (key, children) -> 
+        let children =
+            children
+            |> Seq.filter ((<>) [])
+            |> Seq.toList
+        let path = path + key
+        match children with
+        | [] ->
+            T.Checkable.leaf key path true
+        | _ -> 
+            build (path + "/") children
+            |> T.Checkable.node key 
+    )
+    |> Seq.toList
+
 let page() =
+
     Div [
         menu
         [
@@ -196,4 +226,17 @@ let page() =
         ]
         |> DropDown.create Editing
         gridKind()
+        Div [
+            [
+                "Reports/ParcelPost/ParcelPost.asp"
+                "Reports/ParcelPost/Search.asp"
+                "Reports/PurchaseSummary/main.asp"
+                "Actions/Certificate/Certificate.asp"
+            ]
+            |> List.map (fun x -> x.Split '/' |> List.ofArray)
+            |> build ""
+            |> T.Checkable.create
+            |> T.Checkable.changeAction (Json.Stringify >> JavaScript.Log)
+            |> T.render
+        ]
     ]
