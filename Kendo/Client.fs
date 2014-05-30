@@ -13,6 +13,11 @@ module G = Grid
 module M = Menu
 module V = Piglet.Validation
 
+module String =
+    let notBlank = function
+        | null | "" -> None
+        | x -> Some x
+
 type Philosopher =
     {
         Id: int
@@ -87,6 +92,7 @@ let paymentForm onSubmit content =
 
 let philoGrid data =
     G.Default [
+        C.numeric "Id" "Id"
         C.field "Name" "Name" |> C.width 120 |> C.readonly
         C.field "LastName" "Last Name" |> C.readonly
         C.numeric "Age" "Age" |> C.width 120 |> C.percentFormat 0
@@ -115,7 +121,7 @@ let philoGrid data =
     |> G.cancelButton
     |> G.adjustablePaging
     |> G.saveButton (
-        let act action = Array.map Philosopher.toPerson >> Data.actOn action
+        let act action = Array.map Philosopher.toPerson >> Data.actOn action >> JavaScript.Log
         SaveActions.onAdd (act Data.Added)
         >> SaveActions.onChange (act Data.Updated)
         >> SaveActions.onDelete (act Data.Removed)
@@ -217,7 +223,6 @@ let rec build path tokensLists =
     |> Seq.toList
 
 let page() =
-
     Div [
         menu
         [

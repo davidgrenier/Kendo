@@ -504,7 +504,7 @@ module Grid =
                     |> Seq.iter (fun x -> x?dirty <- false)
 
                     sourceData := Array.copy data
-                    grid.dataSource?success data
+                    grid.dataSource.data(data)
                 )
             )
         )
@@ -551,21 +551,13 @@ module Grid =
 
 module TreeView =
     type Content<'T> =
-        | Children of List<Node<'T>>
+        | Children of Node<'T> list
         | Value of 'T * bool
 
     and Node<'T> = 
         internal {
             Label: string
             Value: Content<'T>
-        }
-
-    type private T<'T> = 
-        {
-            text: string
-            value: Option<'T>
-            items: T<'T> []
-            ``checked``: bool
         }
 
     type ChangeType<'T> = Checked of 'T | Unchecked of 'T
@@ -578,69 +570,74 @@ module TreeView =
             Checkboxes: Option<bool>
         }
 
-    let disableExpand config = { config with Expanded = false }
+    module private Tree =
+        type T<'T> = 
+            {
+                text: string
+                value: Option<'T>
+                items: T<'T> []
+                ``checked``: bool
+            }
 
-    let private node label value =
-        {
-            Label = label
-            Value = value
-        }
+        let disableExpand config = { config with Expanded = false }
 
-    let rec private buildDataSource data =
-        data
-        |> List.map (fun x ->
-            match x.Value with
-            | Children nodes -> 
-                {
-                    text = x.Label
-                    value = None
-                    items = buildDataSource nodes
-                    ``checked`` = false
-                }
-            | Value (value, checkd) ->
-                {
-                    text = x.Label
-                    value = Some value
-                    items = [||]
-                    ``checked`` = checkd
-                }
-        )
-        |> Seq.toArray
+        let node label value =
+            {
+                Label = label
+                Value = value
+            }
 
-    let private create checkboxes sourceData  =
-        {
-            DataSource = sourceData
-            ChangeAction = None
-            Expanded = true
-            Checkboxes = checkboxes
-        }
+        let rec buildDataSource data =
+            data
+            |> List.map (fun x ->
+                match x.Value with
+                | Children nodes -> 
+                    {
+                        text = x.Label
+                        value = None
+                        items = buildDataSource nodes
+                        ``checked`` = false
+                    }
+                | Value (value, checkd) ->
+                    {
+                        text = x.Label
+                        value = Some value
+                        items = [||]
+                        ``checked`` = checkd
+                    }
+            )
+            |> Seq.toArray
 
-    let rec filterCheckedNodes data =
-        seq {
-            for node in data do
-                if node?``checked`` then
-                    yield node?text
-                yield! filterCheckedNodes node?items
-        }
+        let create checkboxes sourceData  =
+            {
+                DataSource = sourceData
+                ChangeAction = None
+                Expanded = true
+                Checkboxes = checkboxes
+            }
 
-    let rec private backup dataSource =
-        seq {
-            for node in dataSource do
-                match node.value with
-                | Some v ->
-                    yield v, node.``checked``
-                | None ->
-                    yield! backup node.items
-        } |> Set.ofSeq
+        let rec backup' dataSource =
+            seq {
+                for node in dataSource do
+                    match node.value with
+                    | Some v ->
+                        yield v, node.``checked``
+                    | None ->
+                        yield! backup' node.items
+            } |> Set.ofSeq
+
+        let backup (dataSource: data1.HierarchicalDataSource.T) =
+            dataSource.view().toJSON()
+            |> As
+            |> backup'
         
-    let render config = 
+    let render config =
         let dataSource = data1.HierarchicalDataSource.Create ()    
-        dataSource.options.data <- buildDataSource config.DataSource
+        dataSource.options.data <- Tree.buildDataSource config.DataSource
         dataSource.init()
 
-        let options = ui.TreeViewOptions(dataSource = dataSource)
+        let options = ui.TreeViewOptions(dataSource = dataSource, loadOnDemand = false)
 
-        options.loadOnDemand <- false
         config.Checkboxes
         |> Option.iter (fun cascade -> options.checkboxes <- ui.TreeViewCheckboxes(checkChildren = cascade))
 
@@ -650,12 +647,12 @@ module TreeView =
         if config.Expanded then
             treeView.expand ".k-item"
 
-        let original = backup ((dataSource.view()).toJSON() |> As<T<_> []>) |> ref
-
         config.ChangeAction
         |> Option.iter (fun action ->
+            let original = Tree.backup dataSource |> ref
+
             dataSource.bind ("change", (fun () ->
-                    let newVersion = backup ((dataSource.view()).toJSON() |> As<T<_> []>)
+                    let newVersion = Tree.backup dataSource
                     let changes = newVersion - !original
                     original := newVersion
                     changes
@@ -664,7 +661,8 @@ module TreeView =
                         | v, _ -> Unchecked v
                     )
                     |> Seq.toList
-                    |> function [] -> () | xs -> action xs
+                    |> Option.conditional ((<>) [])
+                    |> Option.iter action
                 ) |> As
             )
             |> ignore
@@ -673,18 +671,18 @@ module TreeView =
         element
 
     module Checkable =
-        let leaf label value checkd = node label (Value (value, checkd))
-        let node label children = node label (Children children)
+        let leaf label value checkd = Tree.node label (Value (value, checkd))
+        let node label children = Tree.node label (Children children)
             
         let withoutCascade config = { config with Checkboxes = Some false }
-        let create dataSource = create (Some true) dataSource
+        let create dataSource = Tree.create (Some true) dataSource
         let changeAction action config = { config with ChangeAction = Some action }
 
     module Uncheckable =
         let node label children = Checkable.node label children
         let leaf label value = Checkable.leaf label value false
 
-        let create dataSource = create None dataSource
+        let create dataSource = Tree.create None dataSource
 
 module Piglet =
     open IntelliFactory.WebSharper.Piglets

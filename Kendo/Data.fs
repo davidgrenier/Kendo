@@ -62,5 +62,3 @@ let actOn (action: Action) philosophers =
     philosophers
     |> Array.map (fun x -> sprintf "%A: %i - %s" action x.Id x.LastName)
     |> sprintf "%A"
-    |> IntelliFactory.WebSharper.JavaScript.Alert
-    //|> System.Diagnostics.Debug.WriteLine
