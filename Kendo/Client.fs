@@ -221,6 +221,28 @@ let rec build path tokensLists =
             |> T.Checkable.node key 
     )
     |> Seq.toList
+    
+            
+
+let validationIcon reader =
+    Div []
+    |> Piglets.Controls.ShowErrors reader (fun errors ->
+        [
+            Span [] |+ "k-icon k-i-note"
+            |>! Tooltip.right (String.concat "," errors)
+        ]
+    )
+
+let errorIcon() =
+    let error = Stream(Failure[])
+    error.Trigger(Failure [ErrorMessage.Create "Fail" error])
+
+    async {
+        do! Async.Sleep 4000
+        error.Trigger(Failure [ErrorMessage.Create "toto" error])
+    } |> Async.Start
+
+    validationIcon error
 
 let page() =
     Div [
@@ -230,6 +252,8 @@ let page() =
             "Grouping", Grouping
         ]
         |> DropDown.create Editing
+        errorIcon()
+
         gridKind()
         Div [
             [

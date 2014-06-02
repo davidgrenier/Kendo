@@ -684,6 +684,19 @@ module TreeView =
 
         let create dataSource = Tree.create None dataSource
 
+module Tooltip =
+    let private tooltip position text (element: Element) =
+        let option = ui.TooltipOptions()
+        position |> Option.iter (fun x -> option.position <- x)
+        ui.Tooltip.Create(As (element -- Attr.Title text).Dom, option)
+        |> ignore
+
+    let create text = tooltip None text
+    let right text = tooltip (Some "right") text
+    let bottom text = tooltip (Some "bottom") text
+    let top text = tooltip (Some "top") text
+    let left text = tooltip (Some "left") text
+
 module Piglet =
     open IntelliFactory.WebSharper.Piglets
 
