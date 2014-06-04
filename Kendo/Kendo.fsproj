@@ -10,7 +10,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>a0629791</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>8802206c</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>pdbonly</DebugType>
@@ -61,15 +61,15 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.KendoUI">
-      <HintPath>..\packages\WebSharper.KendoUI.2.5.89.0\lib\net40\IntelliFactory.WebSharper.KendoUI.dll</HintPath>
+      <HintPath>..\packages\WebSharper.KendoUI.2.5.104.0\lib\net40\IntelliFactory.WebSharper.KendoUI.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.Piglets">
-      <HintPath>..\packages\WebSharper.Piglets.0.1.81.140\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
+      <HintPath>..\packages\WebSharper.Piglets.0.1.83.142\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.TypeScript.Lib">
-      <HintPath>..\packages\WebSharper.TypeScript.Lib.2.5.23\lib\net40\IntelliFactory.WebSharper.TypeScript.Lib.dll</HintPath>
+      <HintPath>..\packages\WebSharper.TypeScript.Lib.2.5.25\lib\net40\IntelliFactory.WebSharper.TypeScript.Lib.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
@@ -81,11 +81,11 @@
       <HintPath>..\Wrapper\bin\WebSharper.Kendo.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <Import Project="..\packages\WebSharper.2.5.111.45\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.111.45\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.113.48\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.113.48\build\WebSharper.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\WebSharper.2.5.111.45\build\WebSharper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WebSharper.2.5.111.45\build\WebSharper.targets'))" />
+    <Error Condition="!Exists('..\packages\WebSharper.2.5.113.48\build\WebSharper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WebSharper.2.5.113.48\build\WebSharper.targets'))" />
   </Target>
 </Project>
