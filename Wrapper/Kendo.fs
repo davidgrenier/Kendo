@@ -197,8 +197,9 @@ module Column =
         {
             Field: string
             Format: string option
-            Template: ('V -> string) option
+            Template: (Field<'V> -> bool -> 'V -> string) option
             Editor: (string * string) list
+            Locked: bool
             Schema: Schema.T
         }
 
@@ -230,6 +231,7 @@ module Column =
             Format = None
             Template = None
             Editor = []
+            Locked = false
             Schema = Schema.zero
         }
         |> create title
@@ -254,33 +256,45 @@ module Column =
     let width width col = { col with Width = Some width }
     let withClass className col = { col with Attributes = Some ({ ``class`` = className }) }
     
-    let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some (templateFunc c) })
-    let formatWith templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
-    let shortDateFormat x = formatWithf (fun f v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "d")) x
-    let longDateFormat x = formatWithf (fun f v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "D")) x
+    let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
+    let formatWith templateFunc = mapContent (fun c -> { c with Template = Some (fun _ _ -> templateFunc) })
+    let shortDateFormat x = formatWithf (fun f _ v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "d")) x
+    let longDateFormat x = formatWithf (fun f _ v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "D")) x
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
     let rightAligned x = withClass "gridNumericValue" x
     let centered x = withClass "gridCenteredValue" x
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
-    let percentFormat precision x = rightAligned x |> formatWithf (fun f v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
+    let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
 
+    let locked x = mapContent (fun c -> { c with Locked = true }) x
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
     let typed typ = applySchema (Schema.typed typ)
     let numeric name title = field name title |> rightAligned |> typed Schema.Number
     let date name title = field name title |> typed Schema.Date
-    let bool name title = field name title |> typed Schema.Bool
+    let bool name title =
+        field name title
+        |> typed Schema.Bool 
+        |> formatWithf (fun f editable v ->
+            let checkd = if (?) v f.Field then "checked='checked'" else ""
+            let editable =
+                match f.Schema.Editable, editable with
+                | Some false, _ | None, false -> "disabled='disabled'"
+                | _ -> ""
 
-    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) col =
+            "<input type='checkbox' " + checkd + " " + editable + " />"
+        ) 
+
+    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) editable col =
         let column =
             match col.Content with
             | Field f ->
-                ui.GridColumn(field = f.Field)
+                ui.GridColumn(field = f.Field, locked = f.Locked)
                 |>! fun column ->
                     Option.iter (fun f -> column.format <- f) f.Format
-                    Option.iter (fun t -> column.template <- t) f.Template
+                    Option.iter (fun t -> column.template <- t f editable) f.Template
                     match f.Editor with
                     | [] -> ()
                     | choices ->
@@ -421,7 +435,7 @@ module Grid =
         let config = getConfiguration configuration
         let columns =
             config.Columns
-            |> Seq.map (Column.fromMapping onGrid)
+            |> Seq.map (Column.fromMapping onGrid config.Editable)
             |> Seq.toArray
 
         let gconf =

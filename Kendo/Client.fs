@@ -92,18 +92,18 @@ let paymentForm onSubmit content =
 
 let philoGrid data =
     G.Default [
-        C.numeric "Id" "Id"
-        C.field "Name" "Name" |> C.width 120 |> C.readonly
-        C.field "LastName" "Last Name" |> C.readonly
-        C.numeric "Age" "Age" |> C.width 120 |> C.percentFormat 0
-        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 150
-        C.bool "Alive" "Alive" |> C.width 70
+        C.numeric "Id" "Id" |> C.width 200 
+        C.field "Name" "Name" |> C.width 220 |> C.readonly 
+        C.field "LastName" "Last Name" |> C.width 220
+        C.numeric "Age" "Age" |> C.width 220 |> C.percentFormat 0
+        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 220
+        C.bool "Alive" "Alive" |> C.width 220
         C.editor "Test" "Test" [
             "Select...", ""
             "House", "House"
             "Card", "Card"
-        ]
-        C.field "Door" "Door"
+        ] |> C.width 220
+        C.field "Door" "Door" |> C.width 220
         C.command "Show JSON" (fun v ->
             Popup.create "Testing Window" [] (fun onWindow ->
                 Div [
@@ -112,9 +112,9 @@ let philoGrid data =
                 ]
             )
         )
-        |> C.width 120
+        |> C.width 220
         |> C.centered
-        C.delete() |> C.width 120
+        C.delete() |> C.width 220
     ]
     |> G.editable
     |> G.addButton
