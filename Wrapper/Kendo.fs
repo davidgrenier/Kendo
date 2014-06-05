@@ -559,18 +559,14 @@ module Grid =
                             |>! fun y -> y.fields <- schema
             |> buildConfig onGrid configuration
 
-        let element = Div []
+        Div []
+        |>! OnAfterRender (fun element ->
+            grid := ui.Grid.Create(As element.Dom, gridConfig) |> Some
 
-        JavaScript.Log gridConfig
-        JavaScript.Log <| Json.Stringify gridConfig
-
-        grid := ui.Grid.Create(As element.Dom, gridConfig) |> Some
-
-        match configuration with
-        | Plain _ -> ()
-        | WithToolbar (_, xs) -> applyToolButtons onGrid xs
-
-        element
+            match configuration with
+            | Plain _ -> ()
+            | WithToolbar (_, xs) -> applyToolButtons onGrid xs
+        )
 
 module TreeView =
     type Content<'T> =
