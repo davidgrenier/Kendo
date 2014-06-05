@@ -199,7 +199,8 @@ module Column =
             Format: string option
             Template: (Field<'V> -> bool -> 'V -> string) option
             Editor: (string * string) list
-            Locked: bool
+            Frozen: bool
+            Lockable: bool
             Schema: Schema.T
         }
 
@@ -231,7 +232,8 @@ module Column =
             Format = None
             Template = None
             Editor = []
-            Locked = false
+            Frozen = false
+            Lockable = true
             Schema = Schema.zero
         }
         |> create title
@@ -267,7 +269,7 @@ module Column =
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
     let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
 
-    let locked x = mapContent (fun c -> { c with Locked = true }) x
+    let freeze x = mapContent (fun c -> { c with Frozen = true }) x
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
@@ -291,7 +293,7 @@ module Column =
         let column =
             match col.Content with
             | Field f ->
-                ui.GridColumn(field = f.Field, locked = f.Locked)
+                ui.GridColumn(field = f.Field, lockable = f.Lockable, locked = f.Frozen)
                 |>! fun column ->
                     Option.iter (fun f -> column.format <- f) f.Format
                     Option.iter (fun t -> column.template <- t f editable) f.Template
@@ -350,6 +352,7 @@ module Grid =
             Filterable: bool
             Groupable: bool
             Editable: bool
+            Menus: bool
         }
 
     type T<'V> =
@@ -373,6 +376,7 @@ module Grid =
             Filterable = false
             Groupable = false
             Editable = false
+            Menus = false
         }
 
     let onConfig f = function
@@ -393,6 +397,7 @@ module Grid =
     let editable gridConfig = onConfig (fun gridConfig -> { gridConfig with Editable = true }) gridConfig
     let selectableRow action = onConfig (fun gridConfig -> { gridConfig with Selectable = Some (Row action) })
     let selectableCell action = onConfig (fun gridConfig -> { gridConfig with Selectable = Some (Cell action) })
+    let withMenu gridConfig = onConfig (fun gridConfig -> { gridConfig with Menus = true }) gridConfig
 
     let private withToolbarButton kind = function
         | Plain gridConfig -> WithToolbar (gridConfig, [kind])
@@ -448,7 +453,8 @@ module Grid =
                 filterable = As config.Filterable,
                 reorderable = config.Reorderable,
                 editable = ui.GridEditable(confirmation = false),
-                groupable = As config.Groupable
+                groupable = As config.Groupable,
+                columnMenu = As config.Menus
             )
 
         config.Paging
@@ -555,7 +561,10 @@ module Grid =
 
         let element = Div []
 
-        grid := ui.Grid.Create(As element.Body, gridConfig) |> Some
+        JavaScript.Log gridConfig
+        JavaScript.Log <| Json.Stringify gridConfig
+
+        grid := ui.Grid.Create(As element.Dom, gridConfig) |> Some
 
         match configuration with
         | Plain _ -> ()

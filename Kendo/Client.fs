@@ -92,8 +92,8 @@ let paymentForm onSubmit content =
 
 let philoGrid data =
     G.Default [
-        C.numeric "Id" "Id" |> C.width 200 |> C.locked
-        C.field "Name" "Name" |> C.width 220 |> C.readonly |> C.locked
+        C.numeric "Id" "Id" |> C.width 50 |> C.freeze
+        C.field "Name" "Name" |> C.width 220 |> C.readonly
         C.field "LastName" "Last Name" |> C.width 220
         C.numeric "Age" "Age" |> C.width 220 |> C.percentFormat 0
         C.date "Died" "Died On" |> C.shortDateFormat |> C.width 220
@@ -118,6 +118,7 @@ let philoGrid data =
         C.delete() |> C.width 220
     ]
     |> G.editable
+    |> G.withMenu
     |> G.addButton
     |> G.cancelButton
     |> G.adjustablePaging
