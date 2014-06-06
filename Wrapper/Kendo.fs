@@ -611,6 +611,8 @@ module TreeView =
             Checkboxes: Option<bool>
         }
 
+    let disableExpand config = { config with Expanded = false }
+
     module private Tree =
         type T<'T> = 
             {
@@ -619,8 +621,6 @@ module TreeView =
                 items: T<'T> []
                 ``checked``: bool
             }
-
-        let disableExpand config = { config with Expanded = false }
 
         let node label value =
             {
