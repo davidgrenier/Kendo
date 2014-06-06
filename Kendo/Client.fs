@@ -92,7 +92,7 @@ let paymentForm onSubmit content =
 
 let philoGrid data =
     G.Default [
-        C.numeric "Id" "Id" |> C.width 50 |> C.freeze
+        C.numeric "Id" "Id" |> C.width 50 |> C.frozen
         C.field "Name" "Name" |> C.width 220 |> C.readonly
         C.field "LastName" "Last Name" |> C.width 220
         C.numeric "Age" "Age" |> C.width 220 |> C.percentFormat 0

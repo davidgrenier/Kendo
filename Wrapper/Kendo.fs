@@ -199,14 +199,20 @@ module Column =
             Format: string option
             Template: (Field<'V> -> bool -> 'V -> string) option
             Editor: (string * string) list
-            Frozen: bool
-            Lockable: bool
             Schema: Schema.T
         }
 
+    type Settings =
+        {
+            Lockable: bool
+            Frozen: bool
+        }
+
+        with static member Default = { Lockable = true; Frozen = false }
+
     type Content<'V> =
-        | Field of Field<'V>
-        | CommandButton of string * ('V -> unit)
+        | Field of Settings * Field<'V>
+        | CommandButton of Settings * string * ('V -> unit)
 
     type Attribute = { ``class``: string }
 
@@ -227,28 +233,33 @@ module Column =
         }
 
     let field name title =
-        Field {
-            Field = name
-            Format = None
-            Template = None
-            Editor = []
-            Frozen = false
-            Lockable = true
-            Schema = Schema.zero
-        }
+        Field (Settings.Default,
+            {
+                Field = name
+                Format = None
+                Template = None
+                Editor = []
+                Schema = Schema.zero
+            }
+        )
         |> create title
 
     let command label action =
-        CommandButton (label, action)
+        CommandButton (Settings.Default, label, action)
         |> create ""
 
     let delete() = command "destroy" ignore
 
     let private mapContent f col =
-        let content = 
+        match col.Content with
+        | Field (s, c) -> { col with Content = Field (s, f c) }
+        | CommandButton _ -> col
+
+    let private mapSettings f col =
+        let content =
             match col.Content with
-            | Field c -> Field (f c)
-            | CommandButton _ -> col.Content
+            | Field (s, c) -> Field (f s, c)
+            | CommandButton (s, n, a) -> CommandButton (f s, n, a)
         { col with Content = content }
 
     let editor name title choices =
@@ -269,7 +280,7 @@ module Column =
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
     let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
 
-    let freeze x = mapContent (fun c -> { c with Frozen = true }) x
+    let frozen x = mapSettings (fun s -> { s with Frozen = true }) x
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
@@ -292,8 +303,8 @@ module Column =
     let fromMapping (onGrid: (ui.Grid.T -> _) -> _) editable col =
         let column =
             match col.Content with
-            | Field f ->
-                ui.GridColumn(field = f.Field, lockable = f.Lockable, locked = f.Frozen)
+            | Field (s, f) ->
+                ui.GridColumn(field = f.Field, lockable = s.Lockable, locked = s.Frozen)
                 |>! fun column ->
                     Option.iter (fun f -> column.format <- f) f.Format
                     Option.iter (fun t -> column.template <- t f editable) f.Template
@@ -305,7 +316,7 @@ module Column =
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
                             ui.DropDownList.Create(As target, DropDown.configure None choices)
                             |> ignore
-            | CommandButton (text, action) ->
+            | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
                             onGrid (fun grid ->
@@ -317,7 +328,7 @@ module Column =
                             )
                         )
                     )
-                ui.GridColumn(command = [|command|])
+                ui.GridColumn(command = [|command|], lockable = s.Lockable, locked = s.Frozen)
 
         column.title <- col.Title
         Option.iter (fun a -> column.attributes <- a) col.Attributes
@@ -542,7 +553,7 @@ module Grid =
             config.Columns
             |> Seq.choose (function
                 | { Content = Column.CommandButton _ } -> None
-                | { Content = Column.Field field } -> Some (field.Field, field.Schema)
+                | { Content = Column.Field (_, field)} -> Some (field.Field, field.Schema)
             )
             |> Schema.create config.Editable
 
