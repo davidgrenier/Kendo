@@ -13,6 +13,16 @@ module Option =
         | x when f x -> Some x
         | _ -> None
 
+module Array =
+    let Do f = function
+        | xs when Array.isEmpty xs -> ()
+        | xs -> f xs
+
+module List =
+    let Do f = function
+        | [] -> ()
+        | xs -> f xs
+
 module Menu =
     type Item<'T> =
         | Selection of string * 'T
@@ -162,11 +172,9 @@ module SaveActions =
 
     let internal zero = { Changed = ignore; Deleted = ignore; Added = ignore }
 
-    let private (!) f = Option.conditional (Array.isEmpty >> not) >> Option.iter f
-
-    let onChange f actions = { actions with Changed = !f }
-    let onDelete f actions = { actions with Deleted = !f }
-    let onAdd f actions = { actions with Added = !f }
+    let onChange f actions = { actions with Changed = Array.Do f }
+    let onDelete f actions = { actions with Deleted = Array.Do f }
+    let onAdd f actions = { actions with Added = Array.Do f }
 
 module Schema =
     type Field = { editable: bool; ``type``: string }
@@ -510,7 +518,7 @@ module Grid =
 
     let applyToolButtons (onGrid: (ui.Grid.T -> _) -> _) =
         let sourceData = ref [||]
-        onGrid(fun grid -> sourceData := grid.options.dataSource?data |> As |> Array.copy)
+        onGrid(fun grid -> sourceData := grid.dataSource.data() |> As |> Array.copy)
 
         Seq.tryPick (function
             | Save x -> Some x
@@ -523,16 +531,19 @@ module Grid =
                     
                     data
                     |> missingFrom !sourceData
-                    |> gridActions.Added
+                    |> Array.Do gridActions.Added
 
                     !sourceData
                     |> missingFrom data
-                    |> gridActions.Deleted
+                    |> Array.Do gridActions.Deleted
 
                     data
                     |> Array.filter (fun x -> x?dirty)
-                    |>! gridActions.Changed
-                    |> Seq.iter (fun x -> x?dirty <- false)
+                    |> Array.Do (fun changed ->
+                        gridActions.Changed changed
+                        changed
+                        |> Seq.iter (fun x -> x?dirty <- false) 
+                    )
 
                     sourceData := Array.copy data
                     grid.dataSource.data(data)
@@ -650,10 +661,8 @@ module TreeView =
             seq {
                 for node in dataSource do
                     match node.value with
-                    | Some v ->
-                        yield v, node.``checked``
-                    | None ->
-                        yield! backup' node.items
+                    | Some v -> yield v, node.``checked``
+                    | None -> yield! backup' node.items
             } |> Set.ofSeq
 
         let backup (dataSource: data1.HierarchicalDataSource.T) =
@@ -691,8 +700,7 @@ module TreeView =
                         | v, _ -> Unchecked v
                     )
                     |> Seq.toList
-                    |> Option.conditional ((<>) [])
-                    |> Option.iter action
+                    |> List.Do action
                 ) |> As
             )
             |> ignore
