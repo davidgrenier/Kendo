@@ -268,7 +268,7 @@ let page() =
             |> build ""
             |> T.Checkable.create
             |> T.Checkable.changeAction (Json.Stringify >> JavaScript.Log)
-            |> T.disableExpand
+            |> T.collapsed
             |> T.render
         ]
     ]

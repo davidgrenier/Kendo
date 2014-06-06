@@ -611,7 +611,7 @@ module TreeView =
             Checkboxes: Option<bool>
         }
 
-    let disableExpand config = { config with Expanded = false }
+    let collapsed config = { config with Expanded = false }
 
     module private Tree =
         type T<'T> = 
