@@ -298,15 +298,15 @@ module Column =
     let bool name title =
         field name title
         |> typed Schema.Bool 
-        |> formatWithf (fun f editable v ->
-            let checkd = if (?) v f.Field then "checked='checked'" else ""
-            let editable =
-                match f.Schema.Editable, editable with
-                | Some false, _ | None, false -> "disabled='disabled'"
-                | _ -> ""
-
-            "<input type='checkbox' " + checkd + " " + editable + " />"
-        ) 
+//        |> formatWithf (fun f editable v ->
+//            let checkd = if (?) v f.Field then "checked='checked'" else ""
+//            let editable =
+//                match f.Schema.Editable, editable with
+//                | Some false, _ | None, false -> "disabled='disabled'"
+//                | _ -> ""
+//
+//            "<input type='checkbox' " + checkd + " " + editable + " />"
+//        ) 
 
     let fromMapping (onGrid: (ui.Grid.T -> _) -> _) editable col =
         let column =
@@ -314,8 +314,8 @@ module Column =
             | Field (s, f) ->
                 ui.GridColumn(field = f.Field, lockable = s.Lockable, locked = s.Frozen)
                 |>! fun column ->
-                    Option.iter (fun f -> column.format <- f) f.Format
-                    Option.iter (fun t -> column.template <- t f editable) f.Template
+                    f.Format |> Option.iter (fun f -> column.format <- f)
+                    f.Template |> Option.iter (fun t -> column.template <- t f editable) 
                     match f.Editor with
                     | [] -> ()
                     | choices ->
@@ -622,11 +622,7 @@ module TreeView =
                 ``checked``: bool
             }
 
-        let node label value =
-            {
-                Label = label
-                Value = value
-            }
+        let node label value = { Label = label; Value = value }
 
         let rec buildDataSource data =
             data
