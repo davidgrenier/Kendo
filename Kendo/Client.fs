@@ -90,15 +90,20 @@ let paymentForm onSubmit content =
         ]
     )
 
+let calculateField data = 
+    JavaScript.Log data
+    2
+    
+
 let philoGrid data =
     G.Default [
         C.numeric "Id" "Id" |> C.width 50 |> C.frozen
-        C.field "Name" "Name" |> C.width 220 |> C.readonly
+        C.field "Name" "Name" |> C.width 220 //|> C.readonly
         C.field "LastName" "Last Name" |> C.width 220
-        C.numeric "Age" "Age" |> C.width 220 |> C.percentFormat 0
-        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 220
+        C.numeric "Age" "Age" |> C.width 220 |> C.percentFormat 0 
+        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 220 |> C.formatField "#= (Died == null) ? ' ' : kendo.toString(firstDate, 'yyyy-mm-dd') #"
         C.bool "Alive" "Alive" |> C.width 100
-        C.bool "Alive" "Alive" |> C.width 100 |> C.readonly
+        C.bool "Alive2" "Alive2" |> C.width 100 |> C.readonly 
         C.editor "Test" "Test" [
             "Select...", ""
             "House", "House"
@@ -224,7 +229,25 @@ let rec build path tokensLists =
     )
     |> Seq.toList
     
-            
+let rec build2 path tokensLists =
+    let children, parents =
+        tokensLists
+        |> List.partitioned (function
+            | [], child, checkd ->
+                Choice1Of2 (T.Checkable.leaf child path checkd)
+            | parent :: children, child, checkd ->
+                Choice2Of2 (parent, children, child, checkd)
+        )
+    parents
+    |> groupValBy (fun (_, children, child, checkd) -> children, child, checkd) (fun (p, _, _, _) -> p)
+    |> Seq.map (fun (key, children) ->
+        children 
+        |> Seq.toList
+        |> build2 (path + key + "/") 
+        |> T.Checkable.node key
+    )
+    |> Seq.toList
+    |> List.append children
 
 let validationIcon reader =
     Div []
@@ -259,15 +282,21 @@ let page() =
         gridKind()
         Div [
             [
-                "Reports/ParcelPost/ParcelPost.asp"
-                "Reports/ParcelPost/Search.asp"
-                "Reports/PurchaseSummary/main.asp"
-                "Actions/Certificate/Certificate.asp"
+                "Reports/ParcelPost/ParcelPost.asp", true
+                "Reports/ParcelPost/Search.asp", false
+                "Reports/PurchaseSummary/main.asp", true
+                "Actions/Certificate/Certificate.asp", false
             ]
-            |> List.map (fun x -> x.Split '/' |> List.ofArray)
-            |> build ""
+            |> List.map (fun x ->
+                let splitedPath =
+                    (fst x).Split '/'
+                    |> Array.rev
+                    |> Array.toList
+                splitedPath.Tail |> List.rev, splitedPath.Head, snd x
+            )
+            |> build2 ""
             |> T.Checkable.create
-            |> T.Checkable.changeAction (Json.Stringify >> JavaScript.Log)
+            |> T.Checkable.changeAction (JavaScript.Log)
             |> T.collapsed
             |> T.render
         ]

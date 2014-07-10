@@ -298,15 +298,15 @@ module Column =
     let bool name title =
         field name title
         |> typed Schema.Bool 
-//        |> formatWithf (fun f editable v ->
-//            let checkd = if (?) v f.Field then "checked='checked'" else ""
-//            let editable =
-//                match f.Schema.Editable, editable with
-//                | Some false, _ | None, false -> "disabled='disabled'"
-//                | _ -> ""
-//
-//            "<input type='checkbox' " + checkd + " " + editable + " />"
-//        ) 
+        |> formatWithf (fun f editable v ->
+            let checkd = if (?) v f.Field then "checked='checked'" else ""
+            let editable =
+                match f.Schema.Editable, editable with
+                | Some false, _ | None, false -> "disabled='disabled'"
+                | _ -> ""
+
+            "<input class='k-checkbox' type='checkbox' " + checkd + " " + editable + " />"
+        ) 
 
     let fromMapping (onGrid: (ui.Grid.T -> _) -> _) editable col =
         let column =
@@ -528,7 +528,6 @@ module Grid =
             onGrid (fun grid ->
                 grid?saveChanges <- (fun () ->
                     let data = grid.dataSource.data() |> As
-                    
                     data
                     |> missingFrom !sourceData
                     |> Array.Do gridActions.Added
@@ -548,6 +547,9 @@ module Grid =
                     sourceData := Array.copy data
                     grid.dataSource.data(data)
                 )
+//                grid?cancelChanges <- (fun () ->
+//                    //grid.dataSource.data(!sourceData)
+//                )
             )
         )
         
@@ -579,6 +581,7 @@ module Grid =
                         x.model <-
                             create<data1.DataSourceSchemaModel>()
                             |>! fun y -> y.fields <- schema
+                            |>! fun y -> y.id <- "Id"
             |> buildConfig onGrid configuration
 
         Div []
@@ -588,6 +591,35 @@ module Grid =
             match configuration with
             | Plain _ -> ()
             | WithToolbar (_, xs) -> applyToolButtons onGrid xs
+        )
+        |>! OnAfterRender (fun el ->
+            JQuery.JQuery.Of(el.Dom).On("click" , fun ele -> 
+                //ele |> JavaScript.Log
+                match ele?target?className with
+                | "k-edit-cell" -> 
+                    match ele?target?lastChild?``type`` with
+                    | "checkbox" ->
+                        JavaScript.Log "Blockedddd!!"
+                        (!grid |> Option.get).closeCell()
+                        false
+                    | _ -> true
+                | _ -> true
+            )
+        )
+        |>! OnAfterRender (fun el ->
+            JQuery.JQuery.Of(el.Dom).On("click" , ".k-checkbox", fun ele -> 
+                JavaScript.Log "Clickedddd!!"
+                let target = 
+                    JQuery.JQuery.Of(ele?target: Dom.Node).Closest("TR")
+                    |> As<TypeScript.Lib.Element>
+                    |> (!grid |> Option.get).dataItem
+                    |> As
+                target?Alive <- ele?target?``checked``
+                target?dirty <- true
+                //target |> JavaScript.Log
+                true
+            )
+            |> ignore
         )
 
 module TreeView =
