@@ -206,35 +206,13 @@ let groupValBy valueF keyF elements =
    elements
    |> Seq.groupBy keyF
    |> Seq.map (fun (key, values) -> key, values |> Seq.map valueF)
-
-let rec build path tokensLists =
-    tokensLists
-    |> List.choose (function
-        | [] -> None
-        | parent :: child -> Some (parent, child)
-    ) 
-    |> groupValBy snd fst
-    |> Seq.map (fun (key, children) -> 
-        let children =
-            children
-            |> Seq.filter ((<>) [])
-            |> Seq.toList
-        let path = path + key
-        match children with
-        | [] ->
-            T.Checkable.leaf key path true
-        | _ -> 
-            build (path + "/") children
-            |> T.Checkable.node key 
-    )
-    |> Seq.toList
     
 let rec build2 path tokensLists =
     let children, parents =
         tokensLists
         |> List.partitioned (function
             | [], child, checkd ->
-                Choice1Of2 (T.Checkable.leaf child path checkd)
+                Choice1Of2 (T.Checkable.leaf child (path + child) checkd)
             | parent :: children, child, checkd ->
                 Choice2Of2 (parent, children, child, checkd)
         )
@@ -289,14 +267,14 @@ let page() =
             ]
             |> List.map (fun x ->
                 let splitedPath =
-                    (fst x).Split '/'
+                     (fst x).Split '/'
                     |> Array.rev
                     |> Array.toList
                 splitedPath.Tail |> List.rev, splitedPath.Head, snd x
             )
             |> build2 ""
             |> T.Checkable.create
-            |> T.Checkable.changeAction (JavaScript.Log)
+            |> T.Checkable.changeAction (Json.Stringify >> JavaScript.Log)
             |> T.collapsed
             |> T.render
         ]
