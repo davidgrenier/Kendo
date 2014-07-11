@@ -550,8 +550,8 @@ module Grid =
             )
         )
         
-    type Schem = { model: obj }
-    type Test = { data: obj; pageSize: float; schema: Schem }
+    type Schema = { model: obj }
+    type Test = { data: obj; pageSize: float; schema: Schema }
 
     let render data configuration =
         let config = getConfiguration configuration
