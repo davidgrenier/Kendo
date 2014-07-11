@@ -207,7 +207,7 @@ let groupValBy valueF keyF elements =
    |> Seq.groupBy keyF
    |> Seq.map (fun (key, values) -> key, values |> Seq.map valueF)
     
-let rec build2 path tokensLists =
+let rec build path tokensLists =
     let children, parents =
         tokensLists
         |> List.partitioned (function
@@ -221,7 +221,7 @@ let rec build2 path tokensLists =
     |> Seq.map (fun (key, children) ->
         children 
         |> Seq.toList
-        |> build2 (path + key + "/") 
+        |> build (path + key + "/") 
         |> T.Checkable.node key
     )
     |> Seq.toList
@@ -272,7 +272,7 @@ let page() =
                     |> Array.toList
                 splitedPath.Tail |> List.rev, splitedPath.Head, snd x
             )
-            |> build2 ""
+            |> build ""
             |> T.Checkable.create
             |> T.Checkable.changeAction (Json.Stringify >> JavaScript.Log)
             |> T.collapsed
