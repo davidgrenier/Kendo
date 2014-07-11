@@ -547,9 +547,6 @@ module Grid =
                     sourceData := Array.copy data
                     grid.dataSource.data(data)
                 )
-//                grid?cancelChanges <- (fun () ->
-//                    //grid.dataSource.data(!sourceData)
-//                )
             )
         )
         
@@ -581,7 +578,6 @@ module Grid =
                         x.model <-
                             create<data1.DataSourceSchemaModel>()
                             |>! fun y -> y.fields <- schema
-                            |>! fun y -> y.id <- "Id"
             |> buildConfig onGrid configuration
 
         Div []
@@ -594,13 +590,11 @@ module Grid =
         )
         |>! OnAfterRender (fun el ->
             JQuery.JQuery.Of(el.Dom).On("click" , fun ele -> 
-                //ele |> JavaScript.Log
                 match ele?target?className with
                 | "k-edit-cell" -> 
                     match ele?target?lastChild?``type`` with
                     | "checkbox" ->
-                        JavaScript.Log "Blockedddd!!"
-                        (!grid |> Option.get).closeCell()
+                        Option.get(!grid).closeCell()
                         false
                     | _ -> true
                 | _ -> true
@@ -608,15 +602,13 @@ module Grid =
         )
         |>! OnAfterRender (fun el ->
             JQuery.JQuery.Of(el.Dom).On("click" , ".k-checkbox", fun ele -> 
-                JavaScript.Log "Clickedddd!!"
                 let target = 
                     JQuery.JQuery.Of(ele?target: Dom.Node).Closest("TR")
                     |> As<TypeScript.Lib.Element>
-                    |> (!grid |> Option.get).dataItem
-                    |> As
+                    |> Option.get(!grid).dataItem
+                    
                 target?Alive <- ele?target?``checked``
                 target?dirty <- true
-                //target |> JavaScript.Log
                 true
             )
             |> ignore
