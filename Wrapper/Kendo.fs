@@ -9,9 +9,19 @@ open IntelliFactory.WebSharper.KendoUI
 let create<'T>(): 'T = As<'T>(obj())
 
 module Option =
-    let conditional f = function
-        | x when f x -> Some x
+    let condition test = function
+        | x when test -> Some x
         | _ -> None
+
+    let conditional f x = condition (f x) x
+
+    let ofNull = function
+        | null -> None
+        | x -> Some x
+
+    let getOrElseF f = function
+        | None -> f ()
+        | Some x -> x
 
 module Array =
     let Do f = function
@@ -743,17 +753,53 @@ module TreeView =
         let create dataSource = Tree.create None dataSource
 
 module Tooltip =
-    let private tooltip position text (element: Element) =
-        let option = ui.TooltipOptions()
-        position |> Option.iter (fun x -> option.position <- x)
-        ui.Tooltip.Create(As (element -- Attr.Title text).Dom, option)
-        |> ignore
+    [<AutoOpen>]
+    module Option =
+        type Position =
+            | Center
+            | Right
+            | Bottom
+            | Top
+            | Left
 
-    let create text = tooltip None text
-    let right text = tooltip (Some "right") text
-    let bottom text = tooltip (Some "bottom") text
-    let top text = tooltip (Some "top") text
-    let left text = tooltip (Some "left") text
+        let formatPosition = function
+            | Center -> "center"
+            | Right -> "right"
+            | Bottom -> "bottom"
+            | Top -> "top"
+            | Left -> "left"
+
+        type Display =
+            | Normal
+            | Shown
+
+        type Hide =
+            | Auto
+            | CloseIcon
+
+    let custom position shown permanent text (element: Element) =
+        let option =
+            ui.TooltipOptions(
+                autoHide = (permanent <> CloseIcon),
+                content = As text,
+                position = formatPosition position
+            )
+
+        let tt = ui.Tooltip.Create(As element.Dom, option)
+
+        match shown with
+        | Shown ->
+            let id = element.Id
+            element
+            |> OnAfterRender (fun _ ->
+                JQuery.JQuery.Of("#" + id)
+                |> As
+                |> tt.show
+            )
+        | Normal -> ()
+
+    let create text = custom Center Normal Auto text
+    let right text = custom Right Normal Auto text
 
 module Piglet =
     open IntelliFactory.WebSharper.Piglets

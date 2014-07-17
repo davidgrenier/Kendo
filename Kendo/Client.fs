@@ -227,22 +227,39 @@ let rec build path tokensLists =
     |> Seq.toList
     |> List.append children
 
+let showResult (reader: Reader<'a>) (render: Result<'a> -> #seq<#IPagelet>) (container: Element) =
+    reader.Subscribe(fun x ->
+        container.Clear()
+        for e in render x do
+            container.Append(e :> IPagelet)
+    )
+    |> ignore
+    container
+
+let showErrors reader render =
+    showResult reader (function
+        | Success _ -> []
+        | Failure xs -> xs |> List.map (fun x -> x.Message) |> render
+    )
+
 let validationIcon reader =
     Div []
-    |> Piglets.Controls.ShowErrors reader (fun errors ->
-        [
-            Span [] |+ "k-icon k-i-note"
-            |>! Tooltip.right (String.concat "," errors)
-        ]
+    |> showErrors reader (function
+        | [] -> []
+        | errors ->
+            [
+                Span []
+                |+ "k-icon k-i-note"
+                |>! Tooltip.right (String.concat "," errors)
+            ]
     )
 
 let errorIcon() =
-    let error = Stream(Failure[])
-    error.Trigger(Failure [ErrorMessage.Create "Fail" error])
+    let error = Stream(Result.Failwith "An error")
 
     async {
         do! Async.Sleep 4000
-        error.Trigger(Failure [ErrorMessage.Create "toto" error])
+        error.Trigger(Result.Failwith "Another error")
     } |> Async.Start
 
     validationIcon error
@@ -265,12 +282,12 @@ let page() =
                 "Reports/PurchaseSummary/main.asp", true
                 "Actions/Certificate/Certificate.asp", false
             ]
-            |> List.map (fun x ->
+            |> List.map (fun (path, checkd) ->
                 let splitedPath =
-                     (fst x).Split '/'
+                    path.Split '/'
                     |> Array.rev
                     |> Array.toList
-                splitedPath.Tail |> List.rev, splitedPath.Head, snd x
+                List.rev splitedPath.Tail, splitedPath.Head, checkd
             )
             |> build ""
             |> T.Checkable.create
