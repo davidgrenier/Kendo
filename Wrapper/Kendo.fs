@@ -753,53 +753,51 @@ module TreeView =
         let create dataSource = Tree.create None dataSource
 
 module Tooltip =
-    [<AutoOpen>]
-    module Option =
-        type Position =
-            | Center
-            | Right
-            | Bottom
-            | Top
-            | Left
+    type Position =
+        | Center
+        | Right
+        | Bottom
+        | Top
+        | Left
 
-        let formatPosition = function
-            | Center -> "center"
-            | Right -> "right"
-            | Bottom -> "bottom"
-            | Top -> "top"
-            | Left -> "left"
+    type Display =
+        | Normal
+        | Shown
 
-        type Display =
-            | Normal
-            | Shown
+    type Hide =
+        | Auto
+        | CloseIcon
 
-        type Hide =
-            | Auto
-            | CloseIcon
+    module T =
+        let custom position shown permanent (text: string) (element: Element) =
+            let option =
+                ui.TooltipOptions(
+                    autoHide = (permanent <> CloseIcon),
+                    content = As text,
+                    position =
+                        match position with
+                        | Center -> "center"
+                        | Right -> "right"
+                        | Bottom -> "bottom"
+                        | Top -> "top"
+                        | Left -> "left"
+                )
 
-    let custom position shown permanent text (element: Element) =
-        let option =
-            ui.TooltipOptions(
-                autoHide = (permanent <> CloseIcon),
-                content = As text,
-                position = formatPosition position
-            )
+            | Shown ->
+                let id = element.Id
+                element
+                |> OnAfterRender (fun _ ->
+                    JQuery.JQuery.Of("#" + id)
+                    |> As
+            let tt = ui.Tooltip.Create(As element.Dom, option)
 
-        let tt = ui.Tooltip.Create(As element.Dom, option)
+            match shown with
+                    |> tt.show
+                )
+            | Normal -> ()
 
-        match shown with
-        | Shown ->
-            let id = element.Id
-            element
-            |> OnAfterRender (fun _ ->
-                JQuery.JQuery.Of("#" + id)
-                |> As
-                |> tt.show
-            )
-        | Normal -> ()
-
-    let create text = custom Center Normal Auto text
-    let right text = custom Right Normal Auto text
+        let create text = custom Center Normal Auto text
+        let right text = custom Right Normal Auto text
 
 module Piglet =
     open IntelliFactory.WebSharper.Piglets
