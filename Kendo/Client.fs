@@ -270,7 +270,7 @@ let notification () =
         content.Trigger(Success "dichlorodiphenyltrichloroethane")
     } |> Async.Start
     Div []
-    |> Notification.create content
+    |>! Notification.create content
 
 let page() =
     Div [

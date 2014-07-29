@@ -798,7 +798,7 @@ module Notification =
     type Q = JQuery.JQuery
 
     let custom (reader: Reader<string>) visibility (e: Element) =
-        let position = ui.NotificationPosition(top = 30.0)
+        let position = ui.NotificationPosition(top = 5.0)
 
         let option =
             match visibility with
@@ -808,7 +808,7 @@ module Notification =
         let notif = ui.Notification.Create(As e.Dom, option)
 
         e
-        |>! OnAfterRender (fun _ ->
+        |> OnAfterRender (fun _ ->
             reader.Subscribe(function
                 | Success content ->
                     notif.show(content, null)
