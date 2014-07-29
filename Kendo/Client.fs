@@ -238,20 +238,19 @@ let showResult (reader: Reader<'a>) (render: Result<'a> -> #seq<#IPagelet>) (con
 
 let showErrors reader render =
     showResult reader (function
-        | Success _ -> []
+        | Success _
+        | Failure [] -> []
         | Failure xs -> xs |> List.map (fun x -> x.Message) |> render
     )
 
 let validationIcon reader =
     Div []
-    |> showErrors reader (function
-        | [] -> []
-        | errors ->
-            [
-                Span []
-                |+ "k-icon k-i-note"
-                |>! Tooltip.right (String.concat "," errors)
-            ]
+    |> showErrors reader (fun errors ->
+        [
+            Span []
+            |+ "k-icon k-i-note"
+            |>! Tooltip.right (String.concat "," errors)
+        ]
     )
 
 let errorIcon() =
@@ -264,6 +263,15 @@ let errorIcon() =
 
     validationIcon error
 
+let notification () =
+    let content = Stream(Success "anticonstitutionnellement")
+    async {
+        do! Async.Sleep 2000
+        content.Trigger(Success "dichlorodiphenyltrichloroethane")
+    } |> Async.Start
+    Div []
+    |> Notification.create content
+
 let page() =
     Div [
         menu
@@ -273,6 +281,7 @@ let page() =
         ]
         |> DropDown.create Editing
         errorIcon()
+        notification()
 
         gridKind()
         Div [

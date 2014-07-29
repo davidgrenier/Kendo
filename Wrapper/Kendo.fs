@@ -751,53 +751,75 @@ module TreeView =
         let leaf label value = Checkable.leaf label value false
 
         let create dataSource = Tree.create None dataSource
+        
+type Position =
+    | Center
+    | Right
+    | Bottom
+    | Top
+    | Left
+
+type Visibility =
+    | AutoHide
+    | CloseIcon
 
 module Tooltip =
-    type Position =
-        | Center
-        | Right
-        | Bottom
-        | Top
-        | Left
+    let custom position shown permanent (text: string) (element: Element) =
+        let option =
+            ui.TooltipOptions(
+                autoHide = (permanent <> CloseIcon),
+                content = As text,
+                position =
+                    match position with
+                    | Center -> "center"
+                    | Right -> "right"
+                    | Bottom -> "bottom"
+                    | Top -> "top"
+                    | Left -> "left"
+            )
 
-    type Display =
-        | Normal
-        | Shown
+        let tt = ui.Tooltip.Create(As element.Dom, option)
 
-    type Hide =
-        | Auto
-        | CloseIcon
+        if shown then
+            let id = element.Id
+            element
+            |> OnAfterRender (fun _ ->
+                JQuery.JQuery.Of("#" + id)
+                |> As
+                |> tt.show
+            )
 
-    module T =
-        let custom position shown permanent (text: string) (element: Element) =
-            let option =
-                ui.TooltipOptions(
-                    autoHide = (permanent <> CloseIcon),
-                    content = As text,
-                    position =
-                        match position with
-                        | Center -> "center"
-                        | Right -> "right"
-                        | Bottom -> "bottom"
-                        | Top -> "top"
-                        | Left -> "left"
-                )
+    let create text = custom Center false AutoHide text
+    let right text = custom Right false AutoHide text
 
-            | Shown ->
-                let id = element.Id
-                element
-                |> OnAfterRender (fun _ ->
-                    JQuery.JQuery.Of("#" + id)
-                    |> As
-            let tt = ui.Tooltip.Create(As element.Dom, option)
+module Notification =
+    open IntelliFactory.WebSharper.Piglets
 
-            match shown with
-                    |> tt.show
-                )
-            | Normal -> ()
+    type Q = JQuery.JQuery
 
-        let create text = custom Center Normal Auto text
-        let right text = custom Right Normal Auto text
+    let custom (reader: Reader<string>) visibility (e: Element) =
+        let position = ui.NotificationPosition(top = 30.0)
+
+        let option =
+            match visibility with
+            | AutoHide -> ui.NotificationOptions(position = position, stacking = "down")
+            | CloseIcon -> ui.NotificationOptions(autoHideAfter = 0.0, button = true, hideOnClick = false, position = position, stacking = "down")
+            
+        let notif = ui.Notification.Create(As e.Dom, option)
+
+        e
+        |>! OnAfterRender (fun _ ->
+            reader.Subscribe(function
+                | Success content ->
+                    notif.show(content, null)
+                    Q.Of("div.k-animation-container:has(div.k-notification)").Css("left", "50%").Css("transform", "translateX(-50%)")
+                    |> ignore
+                | _ -> ()
+            )
+            |> ignore
+        )
+
+    let create reader = custom reader CloseIcon
 
 module Piglet =
     open IntelliFactory.WebSharper.Piglets
