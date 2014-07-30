@@ -796,8 +796,13 @@ module Notification =
     open IntelliFactory.WebSharper.Piglets
 
     type Q = JQuery.JQuery
+    
+    module Kind =
+        let notif kind (notif: ui.Notification.T) (content: string) = notif.show(content, kind)
+        let error x = notif "error" x
+        let info x = notif "info" x
 
-    let custom (reader: Reader<string>) visibility (e: Element) =
+    let custom showNotif visibility (reader: Reader<string>) (e: Element) =
         let position = ui.NotificationPosition(top = 5.0)
 
         let option =
@@ -811,7 +816,7 @@ module Notification =
         |> OnAfterRender (fun _ ->
             reader.Subscribe(function
                 | Success content ->
-                    notif.show(content, null)
+                    showNotif notif content
                     Q.Of("div.k-animation-container:has(div.k-notification)").Css("left", "50%").Css("transform", "translateX(-50%)")
                     |> ignore
                 | _ -> ()
@@ -819,7 +824,8 @@ module Notification =
             |> ignore
         )
 
-    let create reader = custom reader CloseIcon
+    let create reader = custom Kind.info CloseIcon reader
+    let error reader = custom Kind.error CloseIcon reader
 
 module Piglet =
     open IntelliFactory.WebSharper.Piglets
