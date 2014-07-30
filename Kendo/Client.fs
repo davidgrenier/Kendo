@@ -267,7 +267,7 @@ let notification () =
     let content = Stream(Success "anticonstitutionnellement")
     async {
         do! Async.Sleep 2000
-        content.Trigger(Success "dichlorodiphenyltrichloroethane")
+        content.Trigger(Result.Failwith "dichlorodiphenyltrichloroethane")
     } |> Async.Start
     Div []
     |>! Notification.create content
