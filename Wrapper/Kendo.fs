@@ -797,7 +797,7 @@ module Notification =
 
     type Q = JQuery.JQuery
 
-    let custom visibility (reader: Reader<string>) (e: Element) =
+    let custom visibility (reader: Reader<string>) =
         let position = ui.NotificationPosition(top = 5.0)
 
         let option =
@@ -805,22 +805,23 @@ module Notification =
             | AutoHide -> ui.NotificationOptions(position = position, stacking = "down")
             | CloseIcon -> ui.NotificationOptions(autoHideAfter = 0.0, button = true, hideOnClick = false, position = position, stacking = "down")
             
+        let e = Div[]
+        Q.Of("body").Append e.Dom |> ignore
+
         let notif = ui.Notification.Create(As e.Dom, option)
 
-        e
-        |> OnAfterRender (fun _ ->
-            reader.Subscribe(fun result ->
-                match result with
-                | Success content -> notif.show(content, "info")
-                | Failure content ->
-                    let error = content |> List.map (fun x -> x.Message) |> String.concat ", "
-                    notif.show(error, "error")
+        reader.Subscribe(fun result ->
+            match result with
+            | Success content ->
+                notif.show(content, "info")
+            | Failure content ->
+                let error = content |> List.map (fun x -> x.Message) |> String.concat ", "
+                notif.show(error, "error")
                 
-                Q.Of("div.k-animation-container:has(div.k-notification)").Css("left", "50%").Css("transform", "translateX(-50%)")
-                |> ignore
-            )
+            Q.Of("div.k-animation-container:has(div.k-notification)").Css("left", "50%").Css("transform", "translateX(-50%)")
             |> ignore
         )
+        |> ignore
 
     let create reader = custom CloseIcon reader
 

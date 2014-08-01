@@ -269,10 +269,10 @@ let notification () =
         do! Async.Sleep 2000
         content.Trigger(Result.Failwith "dichlorodiphenyltrichloroethane")
     } |> Async.Start
-    Div []
-    |>! Notification.create content
+    Notification.create content
 
 let page() =
+    notification()
     Div [
         menu
         [
@@ -281,7 +281,6 @@ let page() =
         ]
         |> DropDown.create Editing
         errorIcon()
-        notification()
 
         gridKind()
         Div [
