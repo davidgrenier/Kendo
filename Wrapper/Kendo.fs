@@ -15,9 +15,9 @@ module Option =
 
     let conditional f x = condition (f x) x
 
-    let ofNull = function
-        | null -> None
-        | x -> Some x
+    let ofNull x =
+        if x ===. null then None
+        else Some x
 
     let getOrElseF f = function
         | None -> f ()
@@ -197,6 +197,8 @@ module Schema =
     let typed typ schema = { schema with Type = typ }
 
     let create defaultEdit (schemas: (string * T) seq) =
+        let model = create<data1.DataSourceSchemaModel>()
+
         schemas
         |> Seq.fold (fun schema (fieldName, { Editable = editable; Type = typ } ) ->
             let typ =
@@ -209,6 +211,10 @@ module Schema =
             (?<-) schema fieldName fieldType
             schema
         ) (obj())
+        |> model.set_fields
+        
+        create<data1.DataSourceSchema>()
+        |>! fun schema -> schema.model <- model
 
 module Column =
     type Field<'V> =
@@ -289,8 +295,12 @@ module Column =
     
     let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
     let formatWith templateFunc = mapContent (fun c -> { c with Template = Some (fun _ _ -> templateFunc) })
-    let shortDateFormat x = formatWithf (fun f _ v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "d")) x
-    let longDateFormat x = formatWithf (fun f _ v -> Pervasives.toString(As<TypeScript.Lib.Date>((?) v f.Field), "D")) x
+    let private dateString format = function
+        | null -> ""
+        | (value: string) -> Pervasives.toString(As<TypeScript.Lib.Date> value, format)
+
+    let shortDateFormat x = formatWithf (fun f _ v -> dateString "d" ((?) v f.Field)) x
+    let longDateFormat x = formatWithf (fun f _ v -> dateString "D" ((?) v f.Field)) x
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
     let rightAligned x = withClass "gridNumericValue" x
@@ -526,7 +536,7 @@ module Grid =
 
         Array.filter (fun x -> originalKeys.Contains x?uid |> not)
 
-    let applyToolButtons (onGrid: (ui.Grid.T -> _) -> _) =
+    let applyToolButtons getData (onGrid: (ui.Grid.T -> _) -> _) =
         let sourceData = ref [||]
         onGrid(fun grid -> sourceData := grid.dataSource.data() |> As |> Array.copy)
 
@@ -548,24 +558,45 @@ module Grid =
 
                     data
                     |> Array.filter (fun x -> x?dirty)
-                    |> Array.Do (fun changed ->
-                        gridActions.Changed changed
-                        changed
-                        |> Seq.iter (fun x -> x?dirty <- false) 
-                    )
+                    |> Array.Do gridActions.Changed
 
                     sourceData := Array.copy data
-                    grid.dataSource.data(data)
+
+                    grid.dataSource.sync()
                 )
+                grid?cancelChanges <- getData >> grid.dataSource.data
             )
         )
         
     type Schema = { model: obj }
     type Test = { data: obj; pageSize: float; schema: Schema }
 
-    let render data configuration =
+    let checkboxDisplayFix (element: Element) (grid: ui.Grid.T) =
+        let gridElem = JQuery.JQuery.Of(element.Dom)
+
+        gridElem.On("click", ".k-edit-cell", fun ele -> 
+            match ele?target?lastChild?``type`` with
+            | "checkbox" ->
+                grid.closeCell()
+                false
+            | _ -> true
+        )
+
+        gridElem.On("click" , ".k-checkbox", fun ele ->
+            let target = 
+                JQuery.JQuery.Of(ele?target: Dom.Node).Closest("TR")
+                |> As<TypeScript.Lib.Element>
+                |> grid.dataItem
+                    
+            target?Alive <- ele?target?``checked``
+            target?dirty <- true
+
+            true
+        )
+
+    let render getData configuration =
         let config = getConfiguration configuration
-        let data = Seq.toArray data
+        let getData = getData >> Seq.toArray
         let grid = ref None
         let onGrid f = !grid |> Option.iter f
         
@@ -580,48 +611,20 @@ module Grid =
         let gridConfig =
             create<data1.DataSourceOptions>()
             |>! fun x ->
-                x.data <- data
+                x.data <- getData()
                 x.pageSize <- float (pageSize config.Paging)
-                x.schema <-
-                    create<data1.DataSourceSchema>()
-                    |>! fun x ->
-                        x.model <-
-                            create<data1.DataSourceSchemaModel>()
-                            |>! fun y -> y.fields <- schema
+                x.schema <- schema
             |> buildConfig onGrid configuration
 
         Div []
-        |>! OnAfterRender (fun element ->
-            grid := ui.Grid.Create(As element.Dom, gridConfig) |> Some
+        |>! OnAfterRender (fun el ->
+            grid := ui.Grid.Create(As el.Dom, gridConfig) |> Some
 
             match configuration with
             | Plain _ -> ()
-            | WithToolbar (_, xs) -> applyToolButtons onGrid xs
-        )
-        |>! OnAfterRender (fun el ->
-            JQuery.JQuery.Of(el.Dom).On("click" , fun ele -> 
-                match ele?target?className with
-                | "k-edit-cell" -> 
-                    match ele?target?lastChild?``type`` with
-                    | "checkbox" ->
-                        Option.get(!grid).closeCell()
-                        false
-                    | _ -> true
-                | _ -> true
-            )
-        )
-        |>! OnAfterRender (fun el ->
-            JQuery.JQuery.Of(el.Dom).On("click" , ".k-checkbox", fun ele -> 
-                let target = 
-                    JQuery.JQuery.Of(ele?target: Dom.Node).Closest("TR")
-                    |> As<TypeScript.Lib.Element>
-                    |> Option.get(!grid).dataItem
-                    
-                target?Alive <- ele?target?``checked``
-                target?dirty <- true
-                true
-            )
-            |> ignore
+            | WithToolbar (_, xs) -> applyToolButtons getData onGrid xs
+
+            onGrid (checkboxDisplayFix el)
         )
 
 module TreeView =
@@ -759,9 +762,7 @@ type Position =
     | Top
     | Left
 
-type Visibility =
-    | AutoHide
-    | CloseIcon
+type Visibility = AutoHide | CloseIcon
 
 module Tooltip =
     let custom position shown permanent (text: string) (element: Element) =

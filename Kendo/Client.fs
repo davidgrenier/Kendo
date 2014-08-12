@@ -13,6 +13,11 @@ module G = Grid
 module M = Menu
 module V = Piglet.Validation
 
+module Option =
+    let toNull = function
+        | None -> null
+        | Some x -> x
+
 module String =
     let notBlank = function
         | null | "" -> None
@@ -36,7 +41,7 @@ type Philosopher =
             Name = p.Name
             LastName = p.LastName
             Age = p.Age
-            Died = p.Died.ToEcma()
+            Died = p.Died |> Option.map (fun d -> d.ToEcma()) |> Option.toNull
             Alive = p.Alive
             Test =
                 match p.Name with
@@ -45,13 +50,13 @@ type Philosopher =
             Door = p.Door
         }
 
-    static member toPerson (p: Philosopher): Data.Philosopher =
+    static member toPerson p : Data.Philosopher =
         {
             Id = p.Id
             Name = p.Name
             LastName = p.LastName
             Age = p.Age
-            Died = p.Died.ToDotNet()
+            Died = p.Died |> Option.ofNull |> Option.map (fun d -> d.ToDotNet())
             Alive = p.Alive
             Door = Data.Open
         }
@@ -97,19 +102,20 @@ let calculateField data =
 
 let philoGrid data =
     G.Default [
+        C.delete() |> C.width 100 |> C.frozen
         C.numeric "Id" "Id" |> C.width 50 |> C.frozen
-        C.field "Name" "Name" |> C.width 220 //|> C.readonly
-        C.field "LastName" "Last Name" |> C.width 220
-        C.numeric "Age" "Age" |> C.width 220 |> C.percentFormat 0 
-        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 220 |> C.formatField "#= (Died == null) ? ' ' : kendo.toString(firstDate, 'yyyy-mm-dd') #"
+        C.field "Name" "Name" |> C.width 170 |> C.readonly
+        C.field "LastName" "Last Name" |> C.width 170
+        C.numeric "Age" "Age" |> C.width 120
+        C.date "Died" "Died On" |> C.shortDateFormat |> C.width 180
         C.bool "Alive" "Alive" |> C.width 100
         C.bool "Alive2" "Alive2" |> C.width 100 |> C.readonly 
         C.editor "Test" "Test" [
             "Select...", ""
             "House", "House"
             "Card", "Card"
-        ] |> C.width 220
-        C.field "Door" "Door" |> C.width 220
+        ] |> C.width 150
+        C.field "Door" "Door" |> C.width 150
         C.command "Show JSON" (fun v ->
             Popup.create "Testing Window" [] (fun onWindow ->
                 Div [
@@ -120,10 +126,10 @@ let philoGrid data =
         )
         |> C.width 220
         |> C.centered
-        C.delete() |> C.width 220
     ]
     |> G.editable
     |> G.withMenu
+    |> G.filterable
     |> G.addButton
     |> G.cancelButton
     |> G.adjustablePaging
@@ -190,8 +196,8 @@ let gridKind() =
             Div []
             |> Controls.Show kind (fun kind ->
                 let data =
-                    Data.philosophers()
-                    |> Seq.map Philosopher.ofPerson
+                    Data.philosophers
+                    >> Seq.map Philosopher.ofPerson
                 
                 match kind with
                 | Editing -> [philoGrid data]
