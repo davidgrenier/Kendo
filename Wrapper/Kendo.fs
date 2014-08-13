@@ -16,7 +16,7 @@ module Option =
     let conditional f x = condition (f x) x
 
     let ofNull x =
-        if x ===. null then None
+        if x ==. JavaScript.Undefined then None
         else Some x
 
     let getOrElseF f = function
@@ -564,7 +564,12 @@ module Grid =
 
                     grid.dataSource.sync()
                 )
-                grid?cancelChanges <- getData >> grid.dataSource.data
+                grid?cancelChanges <- (fun () ->
+                    getData()
+                    |> grid.dataSource.data
+
+                    sourceData := grid.dataSource.data() |> As |> Array.copy
+                )
             )
         )
         
@@ -574,12 +579,11 @@ module Grid =
     let checkboxDisplayFix (element: Element) (grid: ui.Grid.T) =
         let gridElem = JQuery.JQuery.Of(element.Dom)
 
-        gridElem.On("click", ".k-edit-cell", fun ele -> 
-            match ele?target?lastChild?``type`` with
-            | "checkbox" ->
+        gridElem.On("click", fun ele ->
+            if ele?target?className = "k-edit-cell" && ele?target?lastChild?``type`` = "checkbox" then
                 grid.closeCell()
                 false
-            | _ -> true
+            else true
         )
 
         gridElem.On("click" , ".k-checkbox", fun ele ->
@@ -626,6 +630,27 @@ module Grid =
 
             onGrid (checkboxDisplayFix el)
         )
+
+    module Piglet =
+        open IntelliFactory.WebSharper.Piglets
+
+        let rowSelect (stream: Stream<_>) = selectableRow (Success >> stream.Trigger)
+        let render (reader: Reader<_ -> _ []>) config =
+            Div[]
+            |>! fun div ->
+                reader.Subscribe(function
+                    | Success getData ->
+                        div.Clear()
+                        render getData config
+                        |> div.Append
+                    | Failure _ ->
+                        div.Clear()
+                )
+                |> ignore
+        let renderResult (reader: Reader<_ -> Result<_ []>>) config =
+            reader
+            |> Reader.Map (fun f -> f >> function Success xs -> xs | Failure _ -> [||])
+            |> render <| config
 
 module TreeView =
     type Content<'T> =
@@ -825,12 +850,6 @@ module Notification =
         |> ignore
 
     let create reader = custom CloseIcon reader
-
-module Piglet =
-    open IntelliFactory.WebSharper.Piglets
-
-    module Grid =
-        let rowSelect (stream: Stream<_>) = Grid.selectableRow (Success >> stream.Trigger)
 
 module Culture =
     let french() = Pervasives.culture "fr-CA"

@@ -95,11 +95,6 @@ let paymentForm onSubmit content =
         ]
     )
 
-let calculateField data = 
-    JavaScript.Log data
-    2
-    
-
 let philoGrid data =
     G.Default [
         C.delete() |> C.width 100 |> C.frozen
@@ -150,7 +145,7 @@ let dependentPhilo data =
                 C.field "LastName" "LastName"
             ]
             |> G.addToolbarTemplate (Span [Text "Hello World!"])
-            |> Piglet.Grid.rowSelect row
+            |> G.Piglet.rowSelect row
             |> G.render data
 
             Div[]
@@ -196,7 +191,7 @@ let gridKind() =
             Div []
             |> Controls.Show kind (fun kind ->
                 let data =
-                    Data.philosophers
+                    Data.getPhilosophers
                     >> Seq.map Philosopher.ofPerson
                 
                 match kind with

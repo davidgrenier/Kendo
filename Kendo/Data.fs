@@ -48,8 +48,7 @@ let philosopher id name last age deathDate =
 let deadPhilo id name last age year month day = philosopher id name last age (Some(year, month, day))
 let philo id name last age = philosopher id name last age None
 
-[<RPC>]
-let philosophers() =
+let philosophers =
     [
         deadPhilo 0 "Isaac" "Newton" 46 1727 3 20
         deadPhilo 1 "Ludwig" "Wittgenstein" 62 1947 4 29
@@ -75,6 +74,24 @@ let philosophers() =
         deadPhilo 21 "Friedrich" "Nietzsche" 55 1900 08 25
         deadPhilo 22 "Friedrich" "Nietzsche" 55 1900 08 25
     ]
+    |> List.map (fun x -> x.Id, x)
+    |> Map.ofSeq
+    |> ref
+
+let nextId =
+    let id =
+        philosophers.Value
+        |> Seq.maxBy (fun (KeyValue(id, _)) -> id)
+        |> fun x -> x.Key
+        |> ref
+    fun () -> incr id; !id
+
+[<RPC>]
+let getPhilosophers() =
+    !philosophers
+    |> Map.toSeq
+    |> Seq.map snd
+    |> Seq.toArray
 
 type Action =
     | Added
@@ -82,7 +99,15 @@ type Action =
     | Updated
 
 [<RPC>]
-let actOn (action: Action) philosophers =
-    philosophers
-    |> Array.map (fun x -> sprintf "%A: %i - %s" action x.Id x.LastName)
-    |> sprintf "%A"
+let actOn (action: Action) changes =
+    changes
+    |> Array.iter (fun x ->
+        match action with
+        | Added ->
+            let newId = nextId()
+            philosophers := philosophers.Value.Add(newId, { x with Id = newId })
+        | Removed ->
+            philosophers := philosophers.Value.Remove x.Id
+        | Updated ->
+            philosophers := philosophers.Value.Add(x.Id, x)
+    )
