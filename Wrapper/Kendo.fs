@@ -344,6 +344,13 @@ module Column =
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
                             ui.DropDownList.Create(As target, DropDown.configure None choices)
                             |> ignore
+                        
+                        column.filterable <-
+                            ui.GridColumnFilterable()
+                            |>! fun filterSettings ->
+                                filterSettings.ui <- fun input ->
+                                    ui.DropDownList.Create(input, DropDown.configure None choices)
+//                                    input?kendoColorPicker()
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
@@ -357,7 +364,7 @@ module Column =
                         )
                     )
                 ui.GridColumn(command = [|command|], lockable = s.Lockable, locked = s.Frozen)
-
+                
         column.title <- col.Title
         Option.iter (fun a -> column.attributes <- a) col.Attributes
         Option.iter (fun w -> column.width <- w) col.Width
@@ -489,7 +496,7 @@ module Grid =
                 sortable = As config.Sortable,
                 dataSource = dataSource,
                 resizable = config.Resizable,
-                filterable = As config.Filterable,
+                filterable = (if config.Filterable then ui.GridFilterable(extra = false) else As false),
                 reorderable = config.Reorderable,
                 editable = ui.GridEditable(confirmation = false),
                 groupable = As config.Groupable,
@@ -499,8 +506,7 @@ module Grid =
         config.Paging
         |> Option.iter (function
             | Paging x -> gconf.pageable <- As true
-            | Sizer x ->
-                gconf.pageable <- ui.GridPageable(pageSizes = [|5; 10; 20; 30; 50; 75; 100|])
+            | Sizer x -> gconf.pageable <- ui.GridPageable(pageSizes = [|5; 10; 20; 30; 50; 75; 100|])
         )
 
         config.Selectable
