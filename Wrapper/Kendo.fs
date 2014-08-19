@@ -85,6 +85,14 @@ module DropDown =
             ui.DropDownList.Create(As input.Body, configure (Some current) choices) |> ignore
         )
 
+module DatePicker =
+    let create (date: EcmaScript.Date) =
+        Input []
+        |>! OnAfterRender (fun input ->
+            ui.DatePicker.Create(As input.Body, ui.DatePickerOptions(value = As date))
+            |> ignore
+        )
+
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
 

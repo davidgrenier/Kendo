@@ -283,6 +283,8 @@ let page() =
         |> DropDown.create Editing
         errorIcon()
 
+        DatePicker.create(EcmaScript.Date())
+
         gridKind()
         Div [
             [
