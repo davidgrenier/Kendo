@@ -659,26 +659,31 @@ module Grid =
             |> render <| config
 
 module DatePicker =
-    let createPicker onChange (date: EcmaScript.Date) =
-        Input []
-        |>! OnAfterRender (fun input ->
-            let option = ui.DatePickerOptions(value = As date, format = "yyyy/MM/dd HH:mm")
-            option.change <- fun _ -> option.value |> As<EcmaScript.Date> |> onChange
-            ui.DatePicker.Create(As input.Body, option)
-            |> ignore
-        )
-
-    let create date = createPicker ignore date
-
+    open IntelliFactory.WebSharper.Piglets
     module Piglet =
-        open IntelliFactory.WebSharper.Piglets
-
         let create (stream: Stream<_>) =
-            let current =
-                match stream.Latest with
-                | Success x -> x
-                | Failure _ -> null
-            createPicker (Success >> stream.Trigger) current
+            Input []
+            |>! OnAfterRender (fun input ->
+                let option = ui.DatePickerOptions(format = "yyyy/MM/dd HH:mm")
+                stream.Subscribe (
+                    let last = ref None
+                    fun result ->
+                        match !last, result with
+                        | Some v, Success value when v = value -> ()
+                        | (None | Some _), Success value ->
+                            last := Some value
+                            option.value <- As value
+                        | _ -> ()
+                )
+                |> ignore
+                option.change <- fun _ -> option.value |> As<EcmaScript.Date> |> Success |> stream.Trigger
+                ui.DatePicker.Create(As input.Body, option)
+                |> ignore
+            )
+
+    let create (date: EcmaScript.Date) =
+        Stream(Success date)
+        |> Piglet.create
 
 module TreeView =
     type Content<'T> =

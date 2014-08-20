@@ -273,6 +273,15 @@ let notification () =
 
 let page() =
     notification()
+
+    let dateStream = Stream(Success(EcmaScript.Date()))
+    async {
+        while true do
+            do! Async.Sleep 1000
+            EcmaScript.Date()
+            |> Success
+            |> dateStream.Trigger
+    } |> Async.Start
     Div [
         menu
         [
@@ -282,7 +291,8 @@ let page() =
         |> DropDown.create Editing
         errorIcon()
 
-        DatePicker.create(EcmaScript.Date())
+
+        DatePicker.Piglet.create dateStream
 
         gridKind()
         Div [
