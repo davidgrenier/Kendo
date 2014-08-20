@@ -662,7 +662,7 @@ module DatePicker =
     let createPicker onChange (date: EcmaScript.Date) =
         Input []
         |>! OnAfterRender (fun input ->
-            let option = ui.DatePickerOptions(value = As date)
+            let option = ui.DatePickerOptions(value = As date, format = "d")
             option.change <- fun _ -> option.value |> As<EcmaScript.Date> |> onChange
             ui.DatePicker.Create(As input.Body, option)
             |> ignore
