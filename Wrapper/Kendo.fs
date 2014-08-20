@@ -85,14 +85,6 @@ module DropDown =
             ui.DropDownList.Create(As input.Body, configure (Some current) choices) |> ignore
         )
 
-module DatePicker =
-    let create (date: EcmaScript.Date) =
-        Input []
-        |>! OnAfterRender (fun input ->
-            ui.DatePicker.Create(As input.Body, ui.DatePickerOptions(value = As date))
-            |> ignore
-        )
-
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
 
@@ -665,6 +657,28 @@ module Grid =
             reader
             |> Reader.Map (fun f -> f >> function Success xs -> xs | Failure _ -> [||])
             |> render <| config
+
+module DatePicker =
+    let createPicker onChange (date: EcmaScript.Date) =
+        Input []
+        |>! OnAfterRender (fun input ->
+            let option = ui.DatePickerOptions(value = As date)
+            option.change <- fun _ -> option.value |> As<EcmaScript.Date> |> onChange
+            ui.DatePicker.Create(As input.Body, option)
+            |> ignore
+        )
+
+    let create date = createPicker ignore date
+
+    module Piglet =
+        open IntelliFactory.WebSharper.Piglets
+
+        let create (stream: Stream<_>) =
+            let current =
+                match stream.Latest with
+                | Success x -> x
+                | Failure _ -> null
+            createPicker (Success >> stream.Trigger) current
 
 module TreeView =
     type Content<'T> =
