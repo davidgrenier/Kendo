@@ -123,10 +123,10 @@ module Tabs =
                 |> ignore
 
 module Popup =
-    type Window = ui.Window
     type T =
-        {
-            Content: ((Window.T -> unit) -> unit) -> Element
+        private {
+            Window: ref<ui.Window.T option>
+            Content: T -> Element
             Title: string
             Width: int
             Draggable: bool
@@ -138,17 +138,18 @@ module Popup =
     let locked p = { p with Resizable = false }
     let withoutOverlay p = { p with Modal = false }
 
-    let close (w: Window.T) = w.destroy()
-    
+    let private actOn f { Window = w} = w.Value |> Option.iter f
+
+    let close = actOn (fun w -> w.destroy())
+
     let private render popup =
-        let window: Window.T option ref = ref None
-        let actOn f = !window |> Option.iter f
+        let actOn f = !popup.Window |> Option.iter f
         
         let config =
             ui.WindowOptions(
                 title = popup.Title,
                 width = string popup.Width + "px",
-                close = (fun _ -> actOn close),
+                close = (fun _ -> close popup),
                 actions = [|"Close"|],
                 animation = As false,
                 draggable = popup.Draggable,
@@ -156,7 +157,7 @@ module Popup =
                 modal = popup.Modal
             )
         
-        window := Some (Window.Create(As (popup.Content actOn).Body, config))
+        popup.Window := Some (ui.Window.Create(As (popup.Content popup).Body, config))
 
         actOn (fun w ->
             w.bind("activate", As w.center) |> ignore
@@ -166,6 +167,7 @@ module Popup =
     let create title settings contentF =
         let applySettings = List.fold (>>) id settings
         {
+            Window = ref None
             Content = contentF
             Title = title
             Width = 500

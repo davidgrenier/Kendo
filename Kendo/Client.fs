@@ -111,10 +111,10 @@ let philoGrid data =
         ] |> C.width 150
         C.field "Door" "Door" |> C.width 150
         C.command "Show JSON" (fun v ->
-            Popup.create "Testing Window" [] (fun onWindow ->
+            Popup.create "Testing Window" [] (fun popup ->
                 Div [
                     Json.Stringify v
-                    |> paymentForm (fun _ -> onWindow Popup.close)
+                    |> paymentForm (fun _ -> Popup.close popup)
                 ]
             )
         )
