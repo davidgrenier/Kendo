@@ -19,6 +19,10 @@ module Option =
         if x ==. JavaScript.Undefined then None
         else Some x
 
+    let toNull = function
+        | None -> null
+        | Some x -> x
+
     let getOrElseF f = function
         | None -> f ()
         | Some x -> x
@@ -660,6 +664,7 @@ module Grid =
 
 module DatePicker =
     open IntelliFactory.WebSharper.Piglets
+
     module Piglet =
         let create (stream: Stream<System.DateTime>) =
             Input []
@@ -667,13 +672,17 @@ module DatePicker =
                 let option = ui.DatePickerOptions(format = "yyyy/MM/dd HH:mm")
                 stream.Subscribe (
                     let last = ref None
-                    fun result ->
-                        match !last, result with
-                        | Some v, Success value when v = value -> ()
-                        | (None | Some _), Success value ->
-                            last := Some value
-                            option.value <- As (value.ToEcma())
-                        | _ -> ()
+                    function
+                    | Success value ->
+                        match !last with
+                        | Some v when v = value -> ()
+                        | _ ->
+                            Option.ofNull value
+                            |>! fun x -> last := x
+                            |> Option.map (fun v -> v.ToEcma() |> As)
+                            |> Option.toNull
+                            |> fun x -> option.value <- x
+                    | _ -> ()
                 )
                 |> ignore
                 option.change <- fun _ -> (As<EcmaScript.Date> option.value).ToDotNet() |> Success |> stream.Trigger
