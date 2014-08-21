@@ -111,3 +111,9 @@ let actOn (action: Action) changes =
         | Updated ->
             philosophers := philosophers.Value.Add(x.Id, x)
     )
+
+[<RPC>]
+let rightNow() = System.DateTime.Now
+
+[<RPC>]
+let nextDay (date: System.DateTime) = date.AddDays 1.0

@@ -661,7 +661,7 @@ module Grid =
 module DatePicker =
     open IntelliFactory.WebSharper.Piglets
     module Piglet =
-        let create (stream: Stream<_>) =
+        let create (stream: Stream<System.DateTime>) =
             Input []
             |>! OnAfterRender (fun input ->
                 let option = ui.DatePickerOptions(format = "yyyy/MM/dd HH:mm")
@@ -672,16 +672,16 @@ module DatePicker =
                         | Some v, Success value when v = value -> ()
                         | (None | Some _), Success value ->
                             last := Some value
-                            option.value <- As value
+                            option.value <- As (value.ToEcma())
                         | _ -> ()
                 )
                 |> ignore
-                option.change <- fun _ -> option.value |> As<EcmaScript.Date> |> Success |> stream.Trigger
+                option.change <- fun _ -> (As<EcmaScript.Date> option.value).ToDotNet() |> Success |> stream.Trigger
                 ui.DatePicker.Create(As input.Body, option)
                 |> ignore
             )
 
-    let create (date: EcmaScript.Date) =
+    let create date =
         Stream(Success date)
         |> Piglet.create
 

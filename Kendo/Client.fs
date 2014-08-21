@@ -271,17 +271,23 @@ let notification () =
     } |> Async.Start
     Notification.create content
 
-let page() =
-    notification()
-
-    let dateStream = Stream(Success(EcmaScript.Date()))
+let myDatePicker() =
+    let date = Data.rightNow() |> ref
+    let dateStream = Stream(Success !date)
     async {
         while true do
-            do! Async.Sleep 1000
-            EcmaScript.Date()
+            do! Async.Sleep 2000
+            date := !date |> Data.nextDay
+            !date
             |> Success
             |> dateStream.Trigger
     } |> Async.Start
+
+    DatePicker.Piglet.create dateStream
+
+let page() =
+    notification()
+
     Div [
         menu
         [
@@ -291,8 +297,7 @@ let page() =
         |> DropDown.create Editing
         errorIcon()
 
-
-        DatePicker.Piglet.create dateStream
+        myDatePicker()
 
         gridKind()
         Div [
