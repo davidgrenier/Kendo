@@ -222,6 +222,14 @@ module Schema =
         create<data1.DataSourceSchema>()
         |>! fun schema -> schema.model <- model
 
+module DataSource =
+    type T = private { DataSource: data1.DataSource.T }
+
+    let internal create dataSource = { DataSource = dataSource }
+
+    let saveChange { DataSource = dataSource } =
+        ()
+
 module Column =
     type Field<'V> =
         {
@@ -232,17 +240,12 @@ module Column =
             Schema: Schema.T
         }
 
-    type Settings =
-        {
-            Lockable: bool
-            Frozen: bool
-        }
-
+    type Settings = { Lockable: bool; Frozen: bool }
         with static member Default = { Lockable = true; Frozen = false }
 
     type Content<'V> =
         | Field of Settings * Field<'V>
-        | CommandButton of Settings * string * ('V -> unit)
+        | CommandButton of Settings * string * (DataSource.T -> 'V -> unit)
 
     type Attribute = { ``class``: string }
 
@@ -278,7 +281,7 @@ module Column =
         CommandButton (Settings.Default, label, action)
         |> create ""
 
-    let delete() = command "destroy" ignore
+    let delete() = command "destroy" (fun _ _ -> ())
 
     let private mapContent f col =
         match col.Content with
@@ -332,7 +335,15 @@ module Column =
                 | _ -> ""
 
             "<input class='k-checkbox' type='checkbox' " + checkd + " " + editable + " />"
-        ) 
+        )
+
+    let createSchema columns editable =
+        columns
+        |> Seq.choose (function
+            | { Content = CommandButton _ } -> None
+            | { Content = Field (_, field)} -> Some (field.Field, field.Schema)
+        )
+        |> Schema.create editable
 
     let fromMapping (onGrid: (ui.Grid.T -> _) -> _) editable col =
         let column =
@@ -356,16 +367,16 @@ module Column =
                             |>! fun filterSettings ->
                                 filterSettings.ui <- fun input ->
                                     ui.DropDownList.Create(input, DropDown.configure None choices)
-//                                    input?kendoColorPicker()
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
                             onGrid (fun grid ->
+                                let dataSource = DataSource.create grid.dataSource
                                 JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
                                 |> As<TypeScript.Lib.Element>
                                 |> grid.dataItem
                                 |> As
-                                |> action
+                                |> action dataSource
                             )
                         )
                     )
@@ -616,13 +627,7 @@ module Grid =
         let grid = ref None
         let onGrid f = !grid |> Option.iter f
         
-        let schema =
-            config.Columns
-            |> Seq.choose (function
-                | { Content = Column.CommandButton _ } -> None
-                | { Content = Column.Field (_, field)} -> Some (field.Field, field.Schema)
-            )
-            |> Schema.create config.Editable
+        let schema = Column.createSchema config.Columns config.Editable
 
         let gridConfig =
             create<data1.DataSourceOptions>()
