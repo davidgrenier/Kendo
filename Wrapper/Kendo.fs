@@ -223,12 +223,37 @@ module Schema =
         |>! fun schema -> schema.model <- model
 
 module DataSource =
-    type T = private { DataSource: data1.DataSource.T }
+    type T<'V> =
+        private {
+            DataSource: data1.DataSource.T
+            CurrentRow: string option
+        }
 
-    let internal create dataSource = { DataSource = dataSource }
+    let internal create dataSource = { DataSource = dataSource; CurrentRow = None }
 
-    let saveChange { DataSource = dataSource } =
-        ()
+    let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
+
+    let saveChange {DataSource = dataSource; CurrentRow = row} value =
+        let obsValue = data1.ObservableObject.Create value
+        row
+        |> Option.iter (fun uid ->
+            JavaScript.Log "item Uid received in saveChange"
+            JavaScript.Log uid
+            dataSource.data()
+            |> As
+            |> Array.map(function
+                | x when x?uid = uid -> 
+                    obsValue?dirty <- true
+                    obsValue.uid <- uid
+                    obsValue
+                | x -> x
+            ) 
+            |>! Array.iter (fun x -> 
+                JavaScript.Log "items passed to the grid"
+                JavaScript.Log x
+            )
+            |> dataSource.data
+        )
 
 module Column =
     type Field<'V> =
@@ -245,7 +270,7 @@ module Column =
 
     type Content<'V> =
         | Field of Settings * Field<'V>
-        | CommandButton of Settings * string * (DataSource.T -> 'V -> unit)
+        | CommandButton of Settings * string * (DataSource.T<'V> -> 'V -> unit)
 
     type Attribute = { ``class``: string }
 
@@ -371,10 +396,15 @@ module Column =
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
                             onGrid (fun grid ->
-                                let dataSource = DataSource.create grid.dataSource
-                                JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
-                                |> As<TypeScript.Lib.Element>
-                                |> grid.dataItem
+                                let item = 
+                                    JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
+                                    |> As<TypeScript.Lib.Element>
+                                    |> grid.dataItem
+                                    
+                                let dataSource = DataSource.create grid.dataSource |> DataSource.withRow item?uid
+                                JavaScript.Log "item Uid passed to save function"
+                                item?uid |> JavaScript.Log
+                                item
                                 |> As
                                 |> action dataSource
                             )
@@ -588,6 +618,8 @@ module Grid =
                     grid.dataSource.sync()
                 )
                 grid?cancelChanges <- (fun () ->
+                    JavaScript.Log "Data being used for cancelation"
+                    getData() |> JavaScript.Log
                     getData()
                     |> grid.dataSource.data
 

@@ -94,6 +94,45 @@ let paymentForm onSubmit content =
         ]
     )
 
+let editForm onSubmit content dataSource =
+    Piglet.Return (fun id name last age died ->
+        {
+            Id = id
+            Name = name
+            LastName = last
+            Age = age
+            Died = died
+            Alive = true
+            Door = Data.Door.Open
+            Test = ""
+        }
+    )
+    <*> Piglet.Yield content.Id
+    <*> Piglet.Yield content.Name
+    <*> Piglet.Yield content.LastName
+    <*> Piglet.Yield content.Age
+    <*> Piglet.Yield content.Died
+    |> Piglet.WithSubmit
+    |> Piglet.Run onSubmit
+    |> Piglet.Render (fun id name last age died submit ->
+        Div [
+            Controls.IntInput id
+            |> Controls.WithLabel "Id"
+            Br[]
+            Controls.Input name
+            |> Controls.WithLabel "Name"
+            Br[]
+            Controls.Input last
+            |> Controls.WithLabel "Last Name"
+            Br[]
+            Controls.IntInput age
+            |> Controls.WithLabel "Age"
+            Br[]
+            Controls.Submit submit
+        ]
+    )
+
+
 let philoGrid data =
     G.Default [
         C.delete() |> C.width 100 |> C.frozen
@@ -114,12 +153,18 @@ let philoGrid data =
             Popup.create "Testing Window" [] (fun popup ->
                 Div [
                     Json.Stringify v
-                    |> paymentForm (fun _ -> Popup.close popup)
+                    |> paymentForm (fun _ -> 
+                        Popup.close popup
+                    )
                 ]
             )
         )
-        |> C.width 220
+        |> C.width 160
         |> C.centered
+        C.command "Edit" (fun dataSource v ->
+            Popup.create "Edit Philosopher" [] (fun popup -> editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v dataSource)
+        )
+        |> C.width 160
     ]
     |> G.editable
     |> G.withMenu
