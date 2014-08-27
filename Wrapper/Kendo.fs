@@ -123,9 +123,9 @@ module Tabs =
                 |> ignore
 
 module Popup =
-    type T =
+    type T = private Window of ref<ui.Window.T option>
+    type Config =
         private {
-            Window: ref<ui.Window.T option>
             Content: T -> Element
             Title: string
             Width: int
@@ -138,45 +138,43 @@ module Popup =
     let locked p = { p with Resizable = false }
     let withoutOverlay p = { p with Modal = false }
 
-    let private actOn f { Window = w} = w.Value |> Option.iter f
+    let private actOn f (Window w) = w.Value |> Option.iter f
 
     let close = actOn (fun w -> w.destroy())
 
-    let private render popup =
-        let actOn f = !popup.Window |> Option.iter f
-        
-        let config =
-            ui.WindowOptions(
-                title = popup.Title,
-                width = string popup.Width + "px",
-                close = (fun _ -> close popup),
-                actions = [|"Close"|],
-                animation = As false,
-                draggable = popup.Draggable,
-                resizable = popup.Resizable,
-                modal = popup.Modal
-            )
-        
-        popup.Window := Some (ui.Window.Create(As (popup.Content popup).Body, config))
-
-        actOn (fun w ->
-            w.bind("activate", As w.center) |> ignore
-            w._open() |> ignore
-        )
-
-    let create title settings contentF =
-        let applySettings = List.fold (>>) id settings
+    let create title content =
         {
-            Window = ref None
-            Content = contentF
+            Content = content
             Title = title
             Width = 500
             Draggable = true
             Modal = true
             Resizable = true
         }
-        |> applySettings
-        |> render
+
+    let show config =
+        let w = ref None
+        let popup = Window w
+        
+        let windowConfig =
+            ui.WindowOptions(
+                title = config.Title,
+                width = string config.Width + "px",
+                close = (fun _ -> close popup),
+                actions = [|"Close"|],
+                animation = As false,
+                draggable = config.Draggable,
+                resizable = config.Resizable,
+                modal = config.Modal
+            )
+
+        let body = config.Content(popup).Body
+        w := ui.Window.Create(As body, windowConfig)|> Some
+
+        actOn (fun w ->
+            w.bind("activate", As w.center) |> ignore
+            w._open() |> ignore
+        ) popup
 
 module SaveActions =
     type T<'V> =

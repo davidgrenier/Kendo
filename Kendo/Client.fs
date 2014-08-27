@@ -90,7 +90,7 @@ let paymentForm onSubmit content =
                 |> Seq.map (fun x -> Span [Text x])
             )
 
-            Controls.Submit submit
+            Controls.SubmitValidate submit
         ]
     )
 
@@ -150,7 +150,7 @@ let philoGrid data =
         ] |> C.width 150
         C.field "Door" "Door" |> C.width 150
         C.command "Show JSON" (fun _ v ->
-            Popup.create "Testing Window" [] (fun popup ->
+            Popup.create "Testing Window" (fun popup ->
                 Div [
                     Json.Stringify v
                     |> paymentForm (fun _ -> 
@@ -158,6 +158,7 @@ let philoGrid data =
                     )
                 ]
             )
+            |> Popup.show
         )
         |> C.width 160
         |> C.centered
