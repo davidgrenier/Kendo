@@ -225,32 +225,34 @@ module DataSource =
         private {
             DataSource: data1.DataSource.T
             CurrentRow: string option
+            Refresh: unit -> unit
         }
 
-    let internal create dataSource = { DataSource = dataSource; CurrentRow = None }
+    let internal create dataSource refresh = { DataSource = dataSource; CurrentRow = None; Refresh = refresh}
 
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
 
-    let saveChange {DataSource = dataSource; CurrentRow = row} value =
-        let obsValue = data1.ObservableObject.Create value
-        row
+    let internal data (dataSource: data1.DataSource.T) =
+        dataSource.data()
+        |> As<data1.Model.T[]>
+
+    let saveChange dataSource value =
+        dataSource.CurrentRow
         |> Option.iter (fun uid ->
-            JavaScript.Log "item Uid received in saveChange"
-            JavaScript.Log uid
-            dataSource.data()
-            |> As
-            |> Array.map(function
-                | x when x?uid = uid -> 
-                    obsValue?dirty <- true
-                    obsValue.uid <- uid
-                    obsValue
-                | x -> x
-            ) 
-            |>! Array.iter (fun x -> 
-                JavaScript.Log "items passed to the grid"
-                JavaScript.Log x
+            let data = dataSource.DataSource |> data
+            data
+            |> Array.tryFindIndex(fun x -> x.uid = uid)
+            |> Option.iter (fun index ->
+                let value = data1.Model.Create value
+                value.dirty <- true
+                value.uid <- uid
+                value?isNew <- fun () -> false
+                
+                data.[index] <- As value
             )
-            |> dataSource.data
+ 
+            dataSource.Refresh ()
+
         )
 
 module Column =
@@ -399,9 +401,8 @@ module Column =
                                     |> As<TypeScript.Lib.Element>
                                     |> grid.dataItem
                                     
-                                let dataSource = DataSource.create grid.dataSource |> DataSource.withRow item?uid
-                                JavaScript.Log "item Uid passed to save function"
-                                item?uid |> JavaScript.Log
+                                let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch |> DataSource.withRow item?uid
+
                                 item
                                 |> As
                                 |> action dataSource
@@ -616,8 +617,6 @@ module Grid =
                     grid.dataSource.sync()
                 )
                 grid?cancelChanges <- (fun () ->
-                    JavaScript.Log "Data being used for cancelation"
-                    getData() |> JavaScript.Log
                     getData()
                     |> grid.dataSource.data
 

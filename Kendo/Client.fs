@@ -163,7 +163,10 @@ let philoGrid data =
         |> C.width 160
         |> C.centered
         C.command "Edit" (fun dataSource v ->
-            Popup.create "Edit Philosopher" [] (fun popup -> editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v dataSource)
+            Popup.create "Edit Philosopher" (fun popup -> 
+                editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v dataSource
+            )
+            |> Popup.show
         )
         |> C.width 160
     ]
