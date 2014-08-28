@@ -97,7 +97,9 @@ let paymentForm onSubmit content =
 let philoGrid data =
     G.Default [
         C.delete() |> C.width 100 |> C.frozen
-        C.numeric "Id" "Id" |> C.width 50 |> C.frozen
+        C.numeric "Id" "Id"
+            |> C.width 50 |> C.frozen
+            |> C.filtered (Filter.lessThan 10)
         C.field "Name" "Name" |> C.width 170 |> C.readonly
         C.field "LastName" "Last Name" |> C.width 170
         C.numeric "Age" "Age" |> C.width 120

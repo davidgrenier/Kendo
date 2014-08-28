@@ -228,6 +228,51 @@ module DataSource =
     let saveChange { DataSource = dataSource } =
         ()
 
+
+
+module Filter =
+    type T =
+        private
+        | StartsWith of string
+        | EndsWith of string
+        | Contains of string
+        | LessThan of obj
+        | GreaterThan of obj
+        | Equality of obj
+        | OtherThan of obj
+
+    let startsWith = StartsWith
+    let endsWith = EndsWith
+    let contains = Contains
+    let lessThan (x: 'a when 'a: comparison) = LessThan x
+    let greaterThan (x: 'a when 'a: comparison) = GreaterThan x
+    let equals (x: 'a when 'a:equality) = Equality x
+    let otherThan (x: 'a when 'a:equality) = OtherThan x
+
+    let build =
+        let f (name: string) (operator: string) (value: obj) =
+            create<data1.DataSourceFilter>()
+            |>! fun f ->
+                f?field <- name
+                f?operator <- operator
+                f?value <- value
+        Seq.map (fun (name, filter) ->
+            match filter with
+            | StartsWith v -> f name "startswith" v
+            | EndsWith v -> f name "endswith" v
+            | Contains v -> f name "contains" v
+            | LessThan v -> f name "lt" v
+            | GreaterThan v -> f name "gt" v
+            | Equality v -> f name "eq" v
+            | OtherThan v -> f name "neq" v
+        )
+        >> Seq.toArray
+        >> Option.conditional ((<>) [||])
+        >> Option.map (fun filters ->
+            create<data1.DataSourceFilters>()
+            |>! fun fs -> fs.filters <- filters
+        )
+
 module Column =
     type Field<'V> =
         {
@@ -236,6 +281,7 @@ module Column =
             Template: (Field<'V> -> bool -> 'V -> string) option
             Editor: (string * string) list
             Schema: Schema.T
+            Filter: Filter.T option
         }
 
     type Settings = { Lockable: bool; Frozen: bool }
@@ -271,6 +317,7 @@ module Column =
                 Template = None
                 Editor = []
                 Schema = Schema.zero
+                Filter = None
             }
         )
         |> create title
@@ -292,6 +339,8 @@ module Column =
             | Field (s, c) -> Field (f s, c)
             | CommandButton (s, n, a) -> CommandButton (f s, n, a)
         { col with Content = content }
+
+    let filtered filter = mapContent (fun x -> { x with Filter = Some filter })
 
     let editor name title choices =
         field name title
@@ -627,12 +676,23 @@ module Grid =
         
         let schema = Column.createSchema config.Columns config.Editable
 
+        let filters =
+            config.Columns
+            |> Seq.choose (function
+                | { Column.Content = Column.Field (_, { Field = name; Filter = filter }) }->
+                    Option.map (fun f -> name, f) filter
+                | { Column.Content = Column.CommandButton _ } ->
+                    None
+            )
+            |> Filter.build
+
         let gridConfig =
             create<data1.DataSourceOptions>()
             |>! fun x ->
                 x.data <- getData()
                 x.pageSize <- float (pageSize config.Paging)
                 x.schema <- schema
+                filters |> Option.iter (fun fs -> x.filter <- fs)
             |> buildConfig onGrid configuration
 
         Div []
