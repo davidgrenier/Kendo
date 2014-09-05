@@ -727,8 +727,6 @@ module Grid =
             | WithToolbar (_, xs) -> applyToolButtons getData onGrid xs
 
             onGrid (checkboxDisplayFix el)
-            JQuery.JQuery.Of(el.Dom).Find(".k-grid-content-locked").Css("height", "auto")
-            |> ignore
         )
 
     module Piglet =
