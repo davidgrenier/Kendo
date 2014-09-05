@@ -229,17 +229,12 @@ module DataSource =
         }
 
     let internal create dataSource refresh = { DataSource = dataSource; CurrentRow = None; Refresh = refresh}
-
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
-
-    let internal data (dataSource: data1.DataSource.T) =
-        dataSource.data()
-        |> As<data1.Model.T[]>
 
     let saveChange dataSource value =
         dataSource.CurrentRow
         |> Option.iter (fun uid ->
-            let data = dataSource.DataSource |> data
+            let data = dataSource.DataSource.data() |> As<data1.Model.T[]>
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
             |> Option.iter (fun index ->
@@ -252,10 +247,7 @@ module DataSource =
             )
  
             dataSource.Refresh ()
-
         )
-
-
 
 module Filter =
     type T =
@@ -735,6 +727,8 @@ module Grid =
             | WithToolbar (_, xs) -> applyToolButtons getData onGrid xs
 
             onGrid (checkboxDisplayFix el)
+            JQuery.JQuery.Of(el.Dom).Find(".k-grid-content-locked").Css("height", "auto")
+            |> ignore
         )
 
     module Piglet =
