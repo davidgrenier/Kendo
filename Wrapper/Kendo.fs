@@ -232,12 +232,9 @@ module DataSource =
             TriggerUnsaved: unit -> unit
         }
 
-//<<<<<<< HEAD
-//    let internal create dataSource refresh = { DataSource = dataSource; CurrentRow = None; Refresh = refresh}
-//=======
+
     let internal create dataSource refresh trigger = { DataSource = dataSource; CurrentRow = None; Refresh = refresh; TriggerUnsaved = trigger  }
 
-//>>>>>>> b697d67e5b62c5107183eccb9aa1563e29175301
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
 
     let internal data (dataSource: data1.DataSource.T) =
@@ -245,15 +242,9 @@ module DataSource =
         |> As<data1.Model.T[]>
 
     let saveChange dataSource value =
-//<<<<<<< HEAD
-//        dataSource.CurrentRow
-//        |> Option.iter (fun uid ->
-//            let data = dataSource.DataSource.data() |> As<data1.Model.T[]>
-//=======
         match dataSource.CurrentRow with
         | Some uid ->
             let data = dataSource.DataSource |> data
-//>>>>>>> b697d67e5b62c5107183eccb9aa1563e29175301
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
             |> Option.iter (fun index ->
@@ -264,11 +255,6 @@ module DataSource =
                 
                 data.[index] <- As value
             )
-//<<<<<<< HEAD
-// 
-//            dataSource.Refresh ()
-//        )
-//=======
         | None ->
             let data = dataSource.DataSource |> data
             let value = data1.Model.Create value
@@ -279,7 +265,6 @@ module DataSource =
 
         dataSource.TriggerUnsaved ()
         dataSource.Refresh ()
-//>>>>>>> b697d67e5b62c5107183eccb9aa1563e29175301
 
 module Filter =
     type T =
