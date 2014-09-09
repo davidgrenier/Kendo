@@ -64,6 +64,32 @@ type CardType = MC | Visa
 
 type CC = { Type: CardType; Number: int }
 
+let showResult (reader: Reader<'a>) (render: Result<'a> -> #seq<#IPagelet>) (container: Element) =
+    reader.Subscribe(fun x ->
+        container.Clear()
+        for e in render x do
+            container.Append(e :> IPagelet)
+    )
+    |> ignore
+    container
+
+let showErrors reader render =
+    showResult reader (function
+        | Success _
+        | Failure [] -> []
+        | Failure xs -> xs |> List.map (fun x -> x.Message) |> render
+    )
+
+let validationIcon reader =
+    Span []
+    |> showErrors reader (fun errors ->
+        [
+            Span []
+            |+ "k-icon k-i-note"
+            |>! Tooltip.right (String.concat "," errors)
+        ]
+    )
+
 let paymentForm onSubmit content =
     Piglet.Return (fun typeId num -> { Type = typeId; Number = int num})
     <*> Piglet.Yield MC
@@ -94,7 +120,7 @@ let paymentForm onSubmit content =
         ]
     )
 
-let editForm onSubmit content dataSource =
+let editForm onSubmit content =
     Piglet.Return (fun id name last age died ->
         {
             Id = id
@@ -104,7 +130,7 @@ let editForm onSubmit content dataSource =
             Died = died
             Alive = true
             Door = Data.Door.Open
-            Test = ""
+            Test = "Card"
         }
     )
     <*> Piglet.Yield content.Id
@@ -131,7 +157,6 @@ let editForm onSubmit content dataSource =
             Controls.Submit submit
         ]
     )
-
 
 let philoGrid data =
     G.Default [
@@ -166,7 +191,7 @@ let philoGrid data =
         |> C.centered
         C.command "Edit" (fun dataSource v ->
             Popup.create "Edit Philosopher" (fun popup -> 
-                editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v dataSource
+                editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v
             )
             |> Popup.show
         )
@@ -175,7 +200,20 @@ let philoGrid data =
     |> G.editable
     |> G.withMenu
     |> G.filterable
-    |> G.addButton
+    |> G.addButton (Some (fun dataSource v () -> 
+        Popup.create "Edit Philosopher" (fun popup -> 
+            editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) {
+            Id = 0
+            Name = ""
+            LastName = ""
+            Age = 0
+            Died = EcmaScript.Date()
+            Alive = true
+            Door = Data.Door.Open
+            Test = "Card"}
+        )
+        |> Popup.show
+    ))
     |> G.cancelButton
     |> G.adjustablePaging
     |> G.saveButton (
@@ -183,6 +221,7 @@ let philoGrid data =
         SaveActions.onAdd (act Data.Added)
         >> SaveActions.onChange (act Data.Updated)
         >> SaveActions.onDelete (act Data.Removed)
+        >> SaveActions.withRenderUnsaved validationIcon
     )
     |> G.render data
 
@@ -277,32 +316,6 @@ let rec build path tokensLists =
     )
     |> Seq.toList
     |> List.append children
-
-let showResult (reader: Reader<'a>) (render: Result<'a> -> #seq<#IPagelet>) (container: Element) =
-    reader.Subscribe(fun x ->
-        container.Clear()
-        for e in render x do
-            container.Append(e :> IPagelet)
-    )
-    |> ignore
-    container
-
-let showErrors reader render =
-    showResult reader (function
-        | Success _
-        | Failure [] -> []
-        | Failure xs -> xs |> List.map (fun x -> x.Message) |> render
-    )
-
-let validationIcon reader =
-    Div []
-    |> showErrors reader (fun errors ->
-        [
-            Span []
-            |+ "k-icon k-i-note"
-            |>! Tooltip.right (String.concat "," errors)
-        ]
-    )
 
 let errorIcon() =
     let error = Stream(Result.Failwith "An error")

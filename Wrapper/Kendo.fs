@@ -182,9 +182,12 @@ module SaveActions =
             Changed: 'V [] -> unit
             Deleted: 'V [] -> unit
             Added: 'V [] -> unit
+            RenderUnsaved: (Piglets.Reader<unit> -> Element) option
         }
 
-    let internal zero = { Changed = ignore; Deleted = ignore; Added = ignore }
+    let internal zero = { Changed = ignore; Deleted = ignore; Added = ignore; RenderUnsaved = None }
+
+    let withRenderUnsaved f actions = { actions with RenderUnsaved = Some f }
 
     let onChange f actions = { actions with Changed = Array.Do f }
     let onDelete f actions = { actions with Deleted = Array.Do f }
@@ -226,15 +229,31 @@ module DataSource =
             DataSource: data1.DataSource.T
             CurrentRow: string option
             Refresh: unit -> unit
+            TriggerUnsaved: unit -> unit
         }
 
-    let internal create dataSource refresh = { DataSource = dataSource; CurrentRow = None; Refresh = refresh}
+//<<<<<<< HEAD
+//    let internal create dataSource refresh = { DataSource = dataSource; CurrentRow = None; Refresh = refresh}
+//=======
+    let internal create dataSource refresh trigger = { DataSource = dataSource; CurrentRow = None; Refresh = refresh; TriggerUnsaved = trigger  }
+
+//>>>>>>> b697d67e5b62c5107183eccb9aa1563e29175301
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
 
+    let internal data (dataSource: data1.DataSource.T) =
+        dataSource.data()
+        |> As<data1.Model.T[]>
+
     let saveChange dataSource value =
-        dataSource.CurrentRow
-        |> Option.iter (fun uid ->
-            let data = dataSource.DataSource.data() |> As<data1.Model.T[]>
+//<<<<<<< HEAD
+//        dataSource.CurrentRow
+//        |> Option.iter (fun uid ->
+//            let data = dataSource.DataSource.data() |> As<data1.Model.T[]>
+//=======
+        match dataSource.CurrentRow with
+        | Some uid ->
+            let data = dataSource.DataSource |> data
+//>>>>>>> b697d67e5b62c5107183eccb9aa1563e29175301
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
             |> Option.iter (fun index ->
@@ -245,9 +264,22 @@ module DataSource =
                 
                 data.[index] <- As value
             )
- 
-            dataSource.Refresh ()
-        )
+//<<<<<<< HEAD
+// 
+//            dataSource.Refresh ()
+//        )
+//=======
+        | None ->
+            let data = dataSource.DataSource |> data
+            let value = data1.Model.Create value
+            value.dirty <- true
+            value?isNew <- fun () -> false
+                
+            data.[0] <- As value
+
+        dataSource.TriggerUnsaved ()
+        dataSource.Refresh ()
+//>>>>>>> b697d67e5b62c5107183eccb9aa1563e29175301
 
 module Filter =
     type T =
@@ -411,7 +443,7 @@ module Column =
         )
         |> Schema.create editable
 
-    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) editable col =
+    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) trigger editable col =
         let column =
             match col.Content with
             | Field (s, f) ->
@@ -442,7 +474,7 @@ module Column =
                                     |> As<TypeScript.Lib.Element>
                                     |> grid.dataItem
                                     
-                                let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch |> DataSource.withRow item?uid
+                                let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch trigger |> DataSource.withRow item?uid
 
                                 item
                                 |> As
@@ -468,7 +500,7 @@ module Grid =
         | Sizer of int
 
     type ToolButton<'V> =
-        | Create
+        | Create of (DataSource.T<'V> -> 'V -> unit -> unit) Option
         | Cancel
         | Save of SaveActions.T<'V>
         | Label of string
@@ -537,12 +569,12 @@ module Grid =
         | WithToolbar (gridConfig, buttons) ->
             let buttons =
                 kind :: buttons
-                |> Seq.distinctBy (function Cancel -> 0 | Create -> 1 | Save _ -> 2 | Label _ -> 3)
+                |> Seq.distinctBy (function Cancel -> 0 | Create _ -> 1 | Save _ -> 2 | Label _ -> 3)
                 |> Seq.toList
             WithToolbar (gridConfig, buttons)
     
     let addToolbarTemplate (el: Element) gridConfig = withToolbarButton (Label el.Html) gridConfig
-    let addButton gridConfig = withToolbarButton Create gridConfig
+    let addButton clickAction gridConfig = withToolbarButton (Create clickAction) gridConfig
     let cancelButton gridConfig = withToolbarButton Cancel gridConfig
     let saveButton configurator = withToolbarButton (Save (configurator SaveActions.zero))
 
@@ -569,11 +601,13 @@ module Grid =
             }
         ) gridConfig
 
-    let buildConfig (onGrid: (ui.Grid.T -> _) -> _) configuration dataSource =
+    open IntelliFactory.WebSharper.Piglets
+
+    let buildConfig (onGrid: (ui.Grid.T -> _) -> _) configuration trigger dataSource =
         let config = getConfiguration configuration
         let columns =
             config.Columns
-            |> Seq.map (Column.fromMapping onGrid config.Editable)
+            |> Seq.map (Column.fromMapping onGrid trigger config.Editable)
             |> Seq.toArray
 
         let gconf =
@@ -612,7 +646,7 @@ module Grid =
             gconf.toolbar <-
                 buttons
                 |> List.map (function
-                    | Create -> !"create"
+                    | Create _ -> !"create"
                     | Cancel -> !"cancel"
                     | Save _ -> !"save"
                     | Label markup -> ui.GridToolbarItem(template = markup)
@@ -629,7 +663,7 @@ module Grid =
 
         Array.filter (fun x -> originalKeys.Contains x?uid |> not)
 
-    let applyToolButtons getData (onGrid: (ui.Grid.T -> _) -> _) =
+    let applyToolButtons getData (onGrid: (ui.Grid.T -> _) -> _) clear =
         let sourceData = ref [||]
         onGrid(fun grid -> sourceData := grid.dataSource.data() |> As |> Array.copy)
 
@@ -655,12 +689,15 @@ module Grid =
 
                     sourceData := Array.copy data
 
+                    clear ()
                     grid.dataSource.sync()
                 )
+
                 grid?cancelChanges <- (fun () ->
                     getData()
                     |> grid.dataSource.data
 
+                    clear ()
                     sourceData := grid.dataSource.data() |> As |> Array.copy
                 )
             )
@@ -690,12 +727,29 @@ module Grid =
 
             true
         )
+    
 
     let render getData configuration =
         let config = getConfiguration configuration
         let getData = getData >> Seq.toArray
         let grid = ref None
         let onGrid f = !grid |> Option.iter f
+
+        let trigger, clear, appendUnsavedTo =
+                match configuration with
+                | Plain _ -> []
+                | WithToolbar (_, xs) -> xs 
+                |> Seq.tryPick(function
+                    | Save {RenderUnsaved = render} -> render
+                    | _ -> None
+                )
+                |> Option.map (fun render ->
+                    let stream = Stream(Success ())
+                    let triggerFailure () = stream.Trigger(Result.Failwith "You have unsaved changes.")
+                    let clear () = stream.Trigger(Success ())
+                    triggerFailure, clear, fun (node:Dom.Node) -> (render stream).Dom |> node.AppendChild |> ignore
+                )
+                |> defaultArg <| (id, id, ignore)
         
         let schema = Column.createSchema config.Columns config.Editable
 
@@ -716,7 +770,7 @@ module Grid =
                 x.pageSize <- float (pageSize config.Paging)
                 x.schema <- schema
                 filters |> Option.iter (fun fs -> x.filter <- fs)
-            |> buildConfig onGrid configuration
+            |> buildConfig onGrid configuration trigger
 
         Div []
         |>! OnAfterRender (fun el ->
@@ -724,7 +778,29 @@ module Grid =
 
             match configuration with
             | Plain _ -> ()
-            | WithToolbar (_, xs) -> applyToolButtons getData onGrid xs
+            | WithToolbar (_, xs) -> 
+                applyToolButtons getData onGrid clear xs
+                appendUnsavedTo el.Dom.ChildNodes.[0]
+                xs
+                |> Seq.tryPick (fun toolbaritem ->
+                    match toolbaritem with
+                    | Create (Some submitAction) -> Some submitAction
+                    | _ -> None
+                )
+                |> Option.iter (fun onclickAction ->
+                    onGrid (fun grid ->
+                        let addButton = JQuery.JQuery.Of(el.Dom).Find ".k-grid-add"
+
+                        let item = 
+                            JQuery.JQuery.Of(el?currentTarget: Dom.Node).Closest("TR").Get 0
+                            |> As<TypeScript.Lib.Element>
+                            |> grid.dataItem
+                                    
+                        let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch trigger 
+
+                        addButton.Bind("click",  onclickAction dataSource (item |> As) |> As) |> ignore
+                    )
+                )
 
             onGrid (checkboxDisplayFix el)
         )
