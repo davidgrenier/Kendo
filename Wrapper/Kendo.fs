@@ -241,8 +241,8 @@ module DataSource =
         |> As<data1.Model.T[]>
 
     let saveChange dataSource value =
-        dataSource.CurrentRow
-        |> Option.iter (fun uid ->
+        match dataSource.CurrentRow with
+        | Some uid ->
             let data = dataSource.DataSource |> data
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
@@ -254,10 +254,16 @@ module DataSource =
                 
                 data.[index] <- As value
             )
+        | None ->
+            let data = dataSource.DataSource |> data
+            let value = data1.Model.Create value
+            value.dirty <- true
+            value?isNew <- fun () -> false
+                
+            data.[0] <- As value
 
-            dataSource.TriggerUnsaved ()
-            dataSource.Refresh ()
-        )
+        dataSource.TriggerUnsaved ()
+        dataSource.Refresh ()
 
 module Filter =
     type T =
@@ -478,7 +484,7 @@ module Grid =
         | Sizer of int
 
     type ToolButton<'V> =
-        | Create of (unit -> unit) Option
+        | Create of (DataSource.T<'V> -> 'V -> unit -> unit) Option
         | Cancel
         | Save of SaveActions.T<'V>
         | Label of string
@@ -766,9 +772,18 @@ module Grid =
                     | _ -> None
                 )
                 |> Option.iter (fun onclickAction ->
-                    let addButton = JQuery.JQuery.Of(el.Dom).Find ".k-grid-add"
-                    addButton.Unbind "click" |> ignore
-                    addButton.Bind("click",  onclickAction |> As) |> ignore
+                    onGrid (fun grid ->
+                        let addButton = JQuery.JQuery.Of(el.Dom).Find ".k-grid-add"
+
+                        let item = 
+                            JQuery.JQuery.Of(el?currentTarget: Dom.Node).Closest("TR").Get 0
+                            |> As<TypeScript.Lib.Element>
+                            |> grid.dataItem
+                                    
+                        let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch trigger 
+
+                        addButton.Bind("click",  onclickAction dataSource (item |> As) |> As) |> ignore
+                    )
                 )
 
             onGrid (checkboxDisplayFix el)

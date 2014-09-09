@@ -200,9 +200,9 @@ let philoGrid data =
     |> G.editable
     |> G.withMenu
     |> G.filterable
-    |> G.addButton (Some (fun () -> 
+    |> G.addButton (Some (fun dataSource v () -> 
         Popup.create "Edit Philosopher" (fun popup -> 
-            editForm (fun _ -> Popup.close popup) {
+            editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) {
             Id = 0
             Name = ""
             LastName = ""
