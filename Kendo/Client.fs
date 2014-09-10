@@ -197,7 +197,7 @@ let philoGrid data =
         )
         |> C.width 160
     ]
-    |> G.editable
+    //|> G.editable
     |> G.withMenu
     |> G.filterable
     |> G.customAddButton (fun dataSource v -> 

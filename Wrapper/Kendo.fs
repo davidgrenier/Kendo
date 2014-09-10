@@ -241,7 +241,7 @@ module DataSource =
         let data = getData dataSource.DataSource
 
         let v = data1.Model.Create value
-        
+        v?editable <- fun _ -> false        
         v.dirty <- true
         v?isNew <- fun () -> false
 
