@@ -160,7 +160,7 @@ let editForm onSubmit content =
 
 let philoGrid data =
     G.Default [
-        C.delete() |> C.width 100 |> C.frozen
+        C.delete() |> C.width 120 |> C.frozen
         C.numeric "Id" "Id"
             |> C.width 50 |> C.frozen
             |> C.filtered (Filter.lessThan 10)
@@ -200,20 +200,23 @@ let philoGrid data =
     |> G.editable
     |> G.withMenu
     |> G.filterable
-    |> G.addButton (Some (fun dataSource v () -> 
+    |> G.customAddButton (fun dataSource v -> 
         Popup.create "Edit Philosopher" (fun popup -> 
-            editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) {
-            Id = 0
-            Name = ""
-            LastName = ""
-            Age = 0
-            Died = EcmaScript.Date()
-            Alive = true
-            Door = Data.Door.Open
-            Test = "Card"}
+            editForm
+                (fun e -> DataSource.saveChange dataSource e; Popup.close popup)
+                {
+                    Id = 0
+                    Name = ""
+                    LastName = ""
+                    Age = 0
+                    Died = EcmaScript.Date()
+                    Alive = true
+                    Door = Data.Door.Open
+                    Test = "Card"
+                }
         )
         |> Popup.show
-    ))
+    )
     |> G.cancelButton
     |> G.adjustablePaging
     |> G.saveButton (

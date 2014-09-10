@@ -27,6 +27,8 @@ module Option =
         | None -> f ()
         | Some x -> x
 
+    let getOrElse v opt = defaultArg opt v
+
 module Array =
     let Do f = function
         | xs when Array.isEmpty xs -> ()
@@ -228,43 +230,32 @@ module DataSource =
         private {
             DataSource: data1.DataSource.T
             CurrentRow: string option
-            Refresh: unit -> unit
             TriggerUnsaved: unit -> unit
         }
 
-
-    let internal create dataSource refresh trigger = { DataSource = dataSource; CurrentRow = None; Refresh = refresh; TriggerUnsaved = trigger  }
-
+    let internal create dataSource trigger = { DataSource = dataSource; CurrentRow = None; TriggerUnsaved = trigger }
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
-
-    let internal data (dataSource: data1.DataSource.T) =
-        dataSource.data()
-        |> As<data1.Model.T[]>
+    let internal getData (dataSource: data1.DataSource.T) = dataSource.data() |> As<data1.Model.T[]>
 
     let saveChange dataSource value =
-        match dataSource.CurrentRow with
-        | Some uid ->
-            let data = dataSource.DataSource |> data
+        let data = getData dataSource.DataSource
+
+        let v = data1.Model.Create value
+        
+        v.dirty <- true
+        v?isNew <- fun () -> false
+
+        dataSource.CurrentRow
+        |> Option.map (fun uid ->
+            v.uid <- uid
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
-            |> Option.iter (fun index ->
-                let value = data1.Model.Create value
-                value.dirty <- true
-                value.uid <- uid
-                value?isNew <- fun () -> false
-                
-                data.[index] <- As value
-            )
-        | None ->
-            let data = dataSource.DataSource |> data
-            let value = data1.Model.Create value
-            value.dirty <- true
-            value?isNew <- fun () -> false
-                
-            data.[0] <- As value
+        )
+        |> Option.getOrElse (Some 0)
+        |> Option.iter (fun i -> data.[i] <- As v)
 
-        dataSource.TriggerUnsaved ()
-        dataSource.Refresh ()
+        dataSource.TriggerUnsaved()
+        dataSource.DataSource.fetch()
 
 module Filter =
     type T =
@@ -459,7 +450,9 @@ module Column =
                                     |> As<TypeScript.Lib.Element>
                                     |> grid.dataItem
                                     
-                                let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch trigger |> DataSource.withRow item?uid
+                                let dataSource =
+                                    DataSource.create grid.dataSource trigger
+                                    |> DataSource.withRow item?uid
 
                                 item
                                 |> As
@@ -476,6 +469,8 @@ module Column =
         column
 
 module Grid =
+    open IntelliFactory.WebSharper.Piglets
+
     type Selectable<'V> =
         | Row of ('V -> unit)
         | Cell of ('V -> unit)
@@ -485,7 +480,8 @@ module Grid =
         | Sizer of int
 
     type ToolButton<'V> =
-        | Create of (DataSource.T<'V> -> 'V -> unit -> unit) Option
+        | CustomCreate of (DataSource.T<'V> -> 'V -> unit)
+        | Create
         | Cancel
         | Save of SaveActions.T<'V>
         | Label of string
@@ -554,12 +550,13 @@ module Grid =
         | WithToolbar (gridConfig, buttons) ->
             let buttons =
                 kind :: buttons
-                |> Seq.distinctBy (function Cancel -> 0 | Create _ -> 1 | Save _ -> 2 | Label _ -> 3)
+                |> Seq.distinctBy (function Cancel -> 0 | CustomCreate _ | Create -> 1 | Save _ -> 2 | Label _ -> 3)
                 |> Seq.toList
             WithToolbar (gridConfig, buttons)
     
     let addToolbarTemplate (el: Element) gridConfig = withToolbarButton (Label el.Html) gridConfig
-    let addButton clickAction gridConfig = withToolbarButton (Create clickAction) gridConfig
+    let addButton gridConfig = withToolbarButton Create gridConfig
+    let customAddButton clickAction gridConfig = withToolbarButton (CustomCreate clickAction) gridConfig
     let cancelButton gridConfig = withToolbarButton Cancel gridConfig
     let saveButton configurator = withToolbarButton (Save (configurator SaveActions.zero))
 
@@ -585,8 +582,6 @@ module Grid =
                         |> Option.map (fun (Paging x | Sizer x) -> Sizer x)
             }
         ) gridConfig
-
-    open IntelliFactory.WebSharper.Piglets
 
     let buildConfig (onGrid: (ui.Grid.T -> _) -> _) configuration trigger dataSource =
         let config = getConfiguration configuration
@@ -631,7 +626,8 @@ module Grid =
             gconf.toolbar <-
                 buttons
                 |> List.map (function
-                    | Create _ -> !"create"
+                    | CustomCreate _
+                    | Create -> !"create"
                     | Cancel -> !"cancel"
                     | Save _ -> !"save"
                     | Label markup -> ui.GridToolbarItem(template = markup)
@@ -712,7 +708,6 @@ module Grid =
 
             true
         )
-    
 
     let render getData configuration =
         let config = getConfiguration configuration
@@ -734,7 +729,7 @@ module Grid =
                     let clear () = stream.Trigger(Success ())
                     triggerFailure, clear, fun (node:Dom.Node) -> (render stream).Dom |> node.AppendChild |> ignore
                 )
-                |> defaultArg <| (id, id, ignore)
+                |> Option.getOrElse (id, id, ignore)
         
         let schema = Column.createSchema config.Columns config.Editable
 
@@ -767,12 +762,11 @@ module Grid =
                 applyToolButtons getData onGrid clear xs
                 appendUnsavedTo el.Dom.ChildNodes.[0]
                 xs
-                |> Seq.tryPick (fun toolbaritem ->
-                    match toolbaritem with
-                    | Create (Some submitAction) -> Some submitAction
+                |> Seq.tryPick (function
+                    | CustomCreate x -> Some x
                     | _ -> None
                 )
-                |> Option.iter (fun onclickAction ->
+                |> Option.iter (fun onClickAction ->
                     onGrid (fun grid ->
                         let addButton = JQuery.JQuery.Of(el.Dom).Find ".k-grid-add"
 
@@ -781,9 +775,10 @@ module Grid =
                             |> As<TypeScript.Lib.Element>
                             |> grid.dataItem
                                     
-                        let dataSource = DataSource.create grid.dataSource grid.dataSource.fetch trigger 
+                        let dataSource = DataSource.create grid.dataSource trigger 
 
-                        addButton.Bind("click",  onclickAction dataSource (item |> As) |> As) |> ignore
+                        addButton.Bind("click", As (fun () -> onClickAction dataSource (As item)))
+                        |> ignore
                     )
                 )
 
