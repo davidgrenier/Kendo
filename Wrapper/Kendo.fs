@@ -626,7 +626,9 @@ module Grid =
             gconf.toolbar <-
                 buttons
                 |> List.map (function
-                    | CustomCreate _
+                    | CustomCreate _ ->
+                        let template = (Div[A [Attr.HRef "#"; Span[Text "Add new record"] |+ "k-icon k-add" :> _] |+ "k-button k-button-icontext k-grid-add"]).Html |> Pervasives.template
+                        ui.GridToolbarItem(template = template)
                     | Create -> !"create"
                     | Cancel -> !"cancel"
                     | Save _ -> !"save"
