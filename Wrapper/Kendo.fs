@@ -627,8 +627,13 @@ module Grid =
                 buttons
                 |> List.map (function
                     | CustomCreate _ ->
-                        let template = (Div[A [Attr.HRef "#"; Span[Text "Add new record"] |+ "k-icon k-add" :> _] |+ "k-button k-button-icontext k-grid-add"]).Html |> Pervasives.template
-                        ui.GridToolbarItem(template = template)
+                        let template =
+                            Div [
+                                A [Span [] |+ "k-icon k-add"]
+                                -< [HRef "\\#"; Text "Add new record"]
+                                |+ "k-button k-button-icontext k-grid-add"
+                            ]
+                        ui.GridToolbarItem(template = template.Html)
                     | Create -> !"create"
                     | Cancel -> !"cancel"
                     | Save _ -> !"save"
