@@ -251,7 +251,10 @@ module DataSource =
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
         )
-        |> Option.getOrElse (Some 0)
+        |> Option.getOrElse (
+            dataSource.DataSource.insert (float 0, v) |> ignore
+            None
+        )
         |> Option.iter (fun i -> data.[i] <- As v)
 
         dataSource.TriggerUnsaved()
@@ -631,7 +634,7 @@ module Grid =
                             Div [
                                 A [Span [] |+ "k-icon k-add"]
                                 -< [HRef "\\#"; Text "Add new record"]
-                                |+ "k-button k-button-icontext k-grid-add"
+                                |+ "k-button k-button-icontext addCustom"
                             ]
                         ui.GridToolbarItem(template = template.Html)
                     | Create -> !"create"
@@ -775,7 +778,7 @@ module Grid =
                 )
                 |> Option.iter (fun onClickAction ->
                     onGrid (fun grid ->
-                        let addButton = JQuery.JQuery.Of(el.Dom).Find ".k-grid-add"
+                        let addButton = JQuery.JQuery.Of(el.Dom).Find ".addCustom"
 
                         let item = 
                             JQuery.JQuery.Of(el?currentTarget: Dom.Node).Closest("TR").Get 0
