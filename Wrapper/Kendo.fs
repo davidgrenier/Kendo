@@ -239,10 +239,8 @@ module DataSource =
 
     let saveChange dataSource value =
         let data = getData dataSource.DataSource
-
         let v = data1.Model.Create value
         v?editable <- fun _ -> false        
-        v.dirty <- true
         v?isNew <- fun () -> false
 
         dataSource.CurrentRow
@@ -251,11 +249,14 @@ module DataSource =
             data
             |> Array.tryFindIndex(fun x -> x.uid = uid)
         )
-        |> Option.getOrElse (
+        |> Option.getOrElseF (fun () ->
             dataSource.DataSource.insert (float 0, v) |> ignore
             None
         )
-        |> Option.iter (fun i -> data.[i] <- As v)
+        |> Option.iter (fun i ->
+            v.dirty <- true 
+            data.[i] <- As v
+        )
 
         dataSource.TriggerUnsaved()
         dataSource.DataSource.fetch()
@@ -675,7 +676,7 @@ module Grid =
                     |> Array.Do gridActions.Deleted
 
                     data
-                    |> Array.filter (fun x -> x?dirty)
+                    |> Array.filter (fun x -> x?dirty = true)
                     |> Array.Do gridActions.Changed
 
                     sourceData := Array.copy data
