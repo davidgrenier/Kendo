@@ -46,7 +46,7 @@ module Menu =
 
     let selection label value = Selection(label, value)
     let choices label items = Choices(label, items)
-    
+
     let private setTag v (el: Element) = el.Body?ValueTag <- v
 
     let rec private build = function
@@ -140,7 +140,7 @@ module Popup =
     let locked p = { p with Resizable = false }
     let withoutOverlay p = { p with Modal = false }
 
-    let private actOn f (Window w) = w.Value |> Option.iter f
+    let private actOn f (Window w) = Option.iter f w.Value
 
     let close = actOn (fun w -> w.destroy())
 
@@ -157,7 +157,7 @@ module Popup =
     let show config =
         let w = ref None
         let popup = Window w
-        
+
         let windowConfig =
             ui.WindowOptions(
                 title = config.Title,
@@ -221,7 +221,7 @@ module Schema =
             schema
         ) (obj())
         |> model.set_fields
-        
+
         create<data1.DataSourceSchema>()
         |>! fun schema -> schema.model <- model
 
@@ -240,7 +240,7 @@ module DataSource =
     let saveChange dataSource value =
         let data = getData dataSource.DataSource
         let v = data1.Model.Create value
-        v?editable <- fun _ -> false        
+        v?editable <- fun _ -> false
         v?isNew <- fun () -> false
 
         dataSource.CurrentRow
@@ -250,11 +250,11 @@ module DataSource =
             |> Array.tryFindIndex(fun x -> x.uid = uid)
         )
         |> Option.getOrElseF (fun () ->
-            dataSource.DataSource.insert (float 0, v) |> ignore
+            dataSource.DataSource.insert (0.0, v) |> ignore
             None
         )
         |> Option.iter (fun i ->
-            v.dirty <- true 
+            v.dirty <- true
             data.[i] <- As v
         )
 
@@ -379,7 +379,7 @@ module Column =
 
     let width width col = { col with Width = Some width }
     let withClass className col = { col with Attributes = Some ({ ``class`` = className }) }
-    
+
     let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
     let formatWith templateFunc = mapContent (fun c -> { c with Template = Some (fun _ _ -> templateFunc) })
     let private dateString format = function
@@ -404,7 +404,7 @@ module Column =
     let date name title = field name title |> typed Schema.Date
     let bool name title =
         field name title
-        |> typed Schema.Bool 
+        |> typed Schema.Bool
         |> formatWithf (fun f editable v ->
             let checkd = if (?) v f.Field then "checked='checked'" else ""
             let editable =
@@ -430,7 +430,7 @@ module Column =
                 ui.GridColumn(field = f.Field, lockable = s.Lockable, locked = s.Frozen)
                 |>! fun column ->
                     f.Format |> Option.iter (fun f -> column.format <- f)
-                    f.Template |> Option.iter (fun t -> column.template <- t f editable) 
+                    f.Template |> Option.iter (fun t -> column.template <- t f editable)
                     match f.Editor with
                     | [] -> ()
                     | choices ->
@@ -439,7 +439,7 @@ module Column =
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
                             ui.DropDownList.Create(As target, DropDown.configure None choices)
                             |> ignore
-                        
+
                         column.filterable <-
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
@@ -449,11 +449,11 @@ module Column =
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
                             onGrid (fun grid ->
-                                let item = 
+                                let item =
                                     JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
                                     |> As<TypeScript.Lib.Element>
                                     |> grid.dataItem
-                                    
+
                                 let dataSource =
                                     DataSource.create grid.dataSource trigger
                                     |> DataSource.withRow item?uid
@@ -465,7 +465,7 @@ module Column =
                         )
                     )
                 ui.GridColumn(command = [|command|], lockable = s.Lockable, locked = s.Frozen)
-                
+
         column.title <- col.Title
         Option.iter (fun a -> column.attributes <- a) col.Attributes
         Option.iter (fun w -> column.width <- w) col.Width
@@ -557,7 +557,7 @@ module Grid =
                 |> Seq.distinctBy (function Cancel -> 0 | CustomCreate _ | Create -> 1 | Save _ -> 2 | Label _ -> 3)
                 |> Seq.toList
             WithToolbar (gridConfig, buttons)
-    
+
     let addToolbarTemplate (el: Element) gridConfig = withToolbarButton (Label el.Html) gridConfig
     let addButton gridConfig = withToolbarButton Create gridConfig
     let customAddButton clickAction gridConfig = withToolbarButton (CustomCreate clickAction) gridConfig
@@ -694,7 +694,7 @@ module Grid =
                 )
             )
         )
-        
+
     type Schema = { model: obj }
     type Test = { data: obj; pageSize: float; schema: Schema }
 
@@ -709,11 +709,11 @@ module Grid =
         )
 
         gridElem.On("click" , ".k-checkbox", fun ele ->
-            let target = 
+            let target =
                 JQuery.JQuery.Of(ele?target: Dom.Node).Closest("TR")
                 |> As<TypeScript.Lib.Element>
                 |> grid.dataItem
-                    
+
             target?Alive <- ele?target?``checked``
             target?dirty <- true
 
@@ -729,7 +729,7 @@ module Grid =
         let trigger, clear, appendUnsavedTo =
                 match configuration with
                 | Plain _ -> []
-                | WithToolbar (_, xs) -> xs 
+                | WithToolbar (_, xs) -> xs
                 |> Seq.tryPick(function
                     | Save {RenderUnsaved = render} -> render
                     | _ -> None
@@ -741,7 +741,7 @@ module Grid =
                     triggerFailure, clear, fun (node:Dom.Node) -> (render stream).Dom |> node.AppendChild |> ignore
                 )
                 |> Option.getOrElse (id, id, ignore)
-        
+
         let schema = Column.createSchema config.Columns config.Editable
 
         let filters =
@@ -769,7 +769,7 @@ module Grid =
 
             match configuration with
             | Plain _ -> ()
-            | WithToolbar (_, xs) -> 
+            | WithToolbar (_, xs) ->
                 applyToolButtons getData onGrid clear xs
                 appendUnsavedTo el.Dom.ChildNodes.[0]
                 xs
@@ -781,12 +781,12 @@ module Grid =
                     onGrid (fun grid ->
                         let addButton = JQuery.JQuery.Of(el.Dom).Find ".addCustom"
 
-                        let item = 
+                        let item =
                             JQuery.JQuery.Of(el?currentTarget: Dom.Node).Closest("TR").Get 0
                             |> As<TypeScript.Lib.Element>
                             |> grid.dataItem
-                                    
-                        let dataSource = DataSource.create grid.dataSource trigger 
+
+                        let dataSource = DataSource.create grid.dataSource trigger
 
                         addButton.Bind("click", As (fun () -> onClickAction dataSource (As item)))
                         |> ignore
@@ -854,7 +854,7 @@ module TreeView =
         | Children of Node<'T> list
         | Value of 'T * bool
 
-    and Node<'T> = 
+    and Node<'T> =
         internal {
             Label: string
             Value: Content<'T>
@@ -873,7 +873,7 @@ module TreeView =
     let collapsed config = { config with Expanded = false }
 
     module private Tree =
-        type T<'T> = 
+        type T<'T> =
             {
                 text: string
                 value: Option<'T>
@@ -887,7 +887,7 @@ module TreeView =
             data
             |> List.map (fun x ->
                 match x.Value with
-                | Children nodes -> 
+                | Children nodes ->
                     {
                         text = x.Label
                         value = None
@@ -924,9 +924,9 @@ module TreeView =
             dataSource.view().toJSON()
             |> As
             |> backup'
-        
+
     let render config =
-        let dataSource = data1.HierarchicalDataSource.Create ()    
+        let dataSource = data1.HierarchicalDataSource.Create ()
         dataSource.options.data <- Tree.buildDataSource config.DataSource
         dataSource.init()
 
@@ -936,8 +936,8 @@ module TreeView =
         |> Option.iter (fun cascade -> options.checkboxes <- ui.TreeViewCheckboxes(checkChildren = cascade))
 
         let element = Div[]
-        let treeView = ui.TreeView.Create(As element.Body, options) 
-        
+        let treeView = ui.TreeView.Create(As element.Body, options)
+
         if config.Expanded then
             treeView.expand ".k-item"
 
@@ -966,7 +966,7 @@ module TreeView =
     module Checkable =
         let leaf label value checkd = Tree.node label (Value (value, checkd))
         let node label children = Tree.node label (Children children)
-            
+
         let withoutCascade config = { config with Checkboxes = Some false }
         let create dataSource = Tree.create (Some true) dataSource
         let changeAction action config = { config with ChangeAction = Some action }
@@ -976,7 +976,7 @@ module TreeView =
         let leaf label value = Checkable.leaf label value false
 
         let create dataSource = Tree.create None dataSource
-        
+
 type Position =
     | Center
     | Right
@@ -1027,7 +1027,7 @@ module Notification =
             match visibility with
             | AutoHide -> ui.NotificationOptions(position = position, stacking = "down")
             | CloseIcon -> ui.NotificationOptions(autoHideAfter = 0.0, button = true, hideOnClick = false, position = position, stacking = "down")
-            
+
         let e = Div[]
         Q.Of("body").Append e.Dom |> ignore
 
@@ -1040,7 +1040,7 @@ module Notification =
             | Failure content ->
                 let error = content |> List.map (fun x -> x.Message) |> String.concat ", "
                 notif.show(error, "error")
-                
+
             Q.Of("div.k-animation-container:has(div.k-notification)").Css("left", "50%").Css("transform", "translateX(-50%)")
             |> ignore
         )
