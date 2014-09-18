@@ -237,7 +237,7 @@ module DataSource =
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
     let internal getData (dataSource: data1.DataSource.T) = dataSource.data() |> As<data1.Model.T[]>
 
-    let saveChange dataSource value =
+    let saveChange (dataSource: T<'a>) (value: 'a) =
         let data = getData dataSource.DataSource
         let v = data1.Model.Create value
         v?editable <- fun _ -> false
@@ -665,6 +665,14 @@ module Grid =
         )
         >> Option.iter (fun gridActions ->
             onGrid (fun grid ->
+                grid?cancelChanges <- (fun () ->
+                    getData()
+                    |> grid.dataSource.data
+
+                    clear ()
+                    sourceData := grid.dataSource.data() |> As |> Array.copy
+                )
+
                 grid?saveChanges <- (fun () ->
                     let data = grid.dataSource.data() |> As
                     data
@@ -683,14 +691,6 @@ module Grid =
 
                     clear ()
                     grid.dataSource.sync()
-                )
-
-                grid?cancelChanges <- (fun () ->
-                    getData()
-                    |> grid.dataSource.data
-
-                    clear ()
-                    sourceData := grid.dataSource.data() |> As |> Array.copy
                 )
             )
         )
