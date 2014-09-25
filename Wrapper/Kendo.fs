@@ -5,6 +5,7 @@ open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.Formlet
 open IntelliFactory.WebSharper.KendoUI
+open IntelliFactory.WebSharper.Piglets
 
 let create<'T>(): 'T = As<'T>(obj())
 
@@ -70,27 +71,39 @@ module Menu =
 module DropDown =
     type DropDownValue<'t> =
         {
-            text: string
             value: 't
+            text: string
         }
-    let internal configure current choices =
-        let values =
-            choices
-            |> List.map (fun (k, v) -> { text = k; value = v })
-            |> List.toArray
-        match current with
-        | None ->
-            ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values)
-        | Some v ->
-            let i = List.findIndex (fun (_, x) -> x = v) choices
-            ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values, index = float i)
+
+    let internal buildDataSource choices =
+        choices
+        |> List.map (fun (v, k) -> { value = v; text = k })
+        |> List.toArray
+
+    let internal configure v choices =
+        let values = buildDataSource choices
+        let i = List.findIndex (fun (_, x) -> x = v) choices
+        ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values, index = float i)
+
+    let internal configureMulti (stream: Stream<_>) choices =
+        let indexedChoices = choices |> List.mapi (fun i (_, label) -> i, label)
+        let values = buildDataSource indexedChoices
+        ui.MultiSelectOptions(dataTextField = "text", dataValueField = "value", dataSource = values, value = 
+            match stream.Latest with
+            | Success x -> x |> Array.choose (fun y -> choices |> List.tryFindIndex (fun choice -> fst choice = y))
+            | Failure _ -> [||]
+        )
+        |>! fun opt -> opt.change <- (fun q -> q.sender.value() |> As |> Array.map (fun i -> fst choices.[i]) |> Success |> stream.Trigger)
+
+    let private insertIntoElement f = Input [] |>! OnAfterRender f
 
     let create current choices =
-        Input []
-        |>! OnAfterRender (fun input ->
-            ui.DropDownList.Create(As input.Body, configure (Some current) choices) |> ignore
-        )
+        insertIntoElement (fun input -> ui.DropDownList.Create(As input.Body, configure current choices) |> ignore)
 
+    let multi stream choices =
+        let config = configureMulti stream choices
+        insertIntoElement (fun input -> ui.MultiSelect.Create(As input.Body, config) |> ignore)
+        
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
 
@@ -437,14 +450,14 @@ module Column =
                         column.editor <- fun (container, options) ->
                             let format = "<input data-bind='value:" + options?field + "'/>"
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
-                            ui.DropDownList.Create(As target, DropDown.configure None choices)
+                            ui.DropDownList.Create(As target, DropDown.configure "" choices)
                             |> ignore
 
                         column.filterable <-
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
                                 filterSettings.ui <- fun input ->
-                                    ui.DropDownList.Create(input, DropDown.configure None choices)
+                                    ui.DropDownList.Create(input, DropDown.configure "" choices)
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
@@ -473,8 +486,6 @@ module Column =
         column
 
 module Grid =
-    open IntelliFactory.WebSharper.Piglets
-
     type Selectable<'V> =
         | Row of ('V -> unit)
         | Cell of ('V -> unit)
