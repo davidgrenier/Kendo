@@ -69,40 +69,43 @@ module Menu =
         el
 
 module DropDown =
-    type DropDownValue<'t> =
-        {
-            value: 't
-            text: string
-        }
+    type private T<'t> = { value: 't; text: string }
 
-    let internal buildDataSource choices =
+    let private buildDataSource choices =
         choices
-        |> List.map (fun (v, k) -> { value = v; text = k })
+        |> List.map (fun (k, l) -> { value = k; text = l })
         |> List.toArray
 
-    let internal configure v choices =
+    let private configure v choices =
         let values = buildDataSource choices
-        let i = List.findIndex (fun (_, x) -> x = v) choices
+        let i = List.findIndex (fun (x, _) -> x = v) choices
         ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values, index = float i)
 
-    let internal configureMulti (stream: Stream<_>) choices =
-        let indexedChoices = choices |> List.mapi (fun i (_, label) -> i, label)
-        let values = buildDataSource indexedChoices
-        ui.MultiSelectOptions(dataTextField = "text", dataValueField = "value", dataSource = values, value = 
+    let private configureMulti (stream: Stream<_>) choices =
+        let values =
+            choices
+            |> List.mapi (fun i (_, label) -> i, label)
+            |> buildDataSource
+        let value =
             match stream.Latest with
-            | Success x -> x |> Array.choose (fun y -> choices |> List.tryFindIndex (fun choice -> fst choice = y))
+            | Success x -> x |> Array.choose (fun y -> choices |> List.tryFindIndex (fun (choice, _) -> choice = y))
             | Failure _ -> [||]
+        let change = Array.map (fun i -> fst choices.[i]) >> Success >> stream.Trigger
+        ui.MultiSelectOptions(
+            dataTextField = "text",
+            dataValueField = "value",
+            dataSource = values,
+            value = value,
+            change = fun q -> q.sender.value() |> As |> change
         )
-        |>! fun opt -> opt.change <- (fun q -> q.sender.value() |> As |> Array.map (fun i -> fst choices.[i]) |> Success |> stream.Trigger)
 
-    let private insertIntoElement f = Input [] |>! OnAfterRender f
-
-    let create current choices =
-        insertIntoElement (fun input -> ui.DropDownList.Create(As input.Body, configure current choices) |> ignore)
-
-    let multi stream choices =
-        let config = configureMulti stream choices
-        insertIntoElement (fun input -> ui.MultiSelect.Create(As input.Body, config) |> ignore)
+    let private insertIntoElement create config =
+        Input[]
+        |>! OnAfterRender (fun el -> create(As el.Body, config) |> ignore)
+        
+    let createFromElement el current choices = ui.DropDownList.Create(As el, configure current choices) |> ignore
+    let create current choices = insertIntoElement ui.DropDownList.Create (configure current choices)
+    let multi stream choices = insertIntoElement ui.MultiSelect.Create (configureMulti stream choices)
         
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
@@ -450,14 +453,16 @@ module Column =
                         column.editor <- fun (container, options) ->
                             let format = "<input data-bind='value:" + options?field + "'/>"
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
-                            ui.DropDownList.Create(As target, DropDown.configure "" choices)
-                            |> ignore
+                            DropDown.createFromElement target "" choices
+//                            ui.DropDownList.Create(As target, DropDown.configure "" choices)
+//                            |> ignore
 
                         column.filterable <-
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
                                 filterSettings.ui <- fun input ->
-                                    ui.DropDownList.Create(input, DropDown.configure "" choices)
+                                    DropDown.createFromElement "" choices input
+//                                    ui.DropDownList.Create(input, DropDown.configure "" choices)
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->

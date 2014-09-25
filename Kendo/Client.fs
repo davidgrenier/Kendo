@@ -171,7 +171,7 @@ let philoGrid data =
         C.bool "Alive" "Alive" |> C.width 100
         C.bool "Alive2" "Alive2" |> C.width 100 |> C.readonly 
         C.editor "Test" "Test" [
-            "Select...", ""
+            "", "Select..."
             "House", "House"
             "Card", "Card"
         ] |> C.width 150
@@ -197,7 +197,7 @@ let philoGrid data =
         )
         |> C.width 160
     ]
-    //|> G.editable
+    |> G.editable
     |> G.withMenu
     |> G.filterable
     |> G.customAddButton (fun dataSource v -> 
@@ -375,64 +375,6 @@ let page() =
                 "Reports/ParcelPost/Search.asp", false
                 "Reports/PurchaseSummary/main.asp", true
                 "Actions/Certificate/Certificate.asp", false
-                "Actions/Certificate/Certificate.asp1", false
-                "Actions/Certificate/Certificate.asp2", false
-                "Actions/Certificate/Certificate.asp3", false
-                "Actions/Certificate/Certificate.asp4", false
-                "Actions/Certificate/Certificate.asp5", false
-                "Actions/Certificate/Certificate.asp6", false
-                "Actions/Certificate/Certificate.asp7", false
-                "Actions/Certificate/Certificate.asp8", false
-                "Actions/Certificate/Certificate.as4p", false
-                "Actions/Certificate/Certificate.as4p", false
-                "Actions/Certificate/Certificate.as5p", false
-                "Actions/Certificate/Certificate.arewesp", false
-                "Actions/Certificate/Certificate.as4p", false
-                "Actions/Certificate/Certificate.as55p", false
-                "Actions/Certificate/Certificate.a5sp", false
-                "Actions/Certificate/Certificate.asbgfp", false
-                "Actions/Certificate/Certificate.agfggfsp", false
-                "Actions/Certificate/Certificate.affdsp", false
-                "Actions/Certificate/Certificvfdate.asp", false
-                "Actions/Certificate/Certifbdficate.asp", false
-                "Actions/Certificate/Certifigdgcate.asp", false
-                "Actions/Certificate/Certifdficate.asp", false
-                "Actions/Certificate/Certifdbdicate.asp", false
-                "Actions/Certificate/Cerfbtificate.asp", false
-                "Actions/Certificate/Cebrtificate.asp", false
-                "Actions/Certificate/Cerdtificate.asp", false
-                "Actions/Certificate/Certifbdficate.asp", false
-                "Actions/Certificate/Certidfbficate.asp", false
-                "Actions/Certificate/Certdbificate.asp", false
-                "Actions/Certificate/Certbcificate.asp", false
-                "Actions/Certificate/Certifbcvcicate.asp", false
-                "Actions/Certificate/Certiffdbicate.asp", false
-                "Actions/Certificate/Certidfbficate.asp", false
-                "Actions/Certificate/Certibvcficate.asp", false
-                "Actions/Certificate/Certifcvbcvicate.asp", false
-                "Actions/Certificate/Certificbvccate.asp", false
-                "Actions/Certificate/Certifcbicate.asp", false
-                "Actions/Certificate/Certifcbvcicate.asp", false
-                "Actions/Certificate/Certifcbvbicate.asp", false
-                "Actions/Certificate/Certificcvbcvate.asp", false
-                "Actions/Certificate/Certificvbcate.asp", false
-                "Actions/Certificate/Certificbvccate.asp", false
-                "Actions/Certificate/Certificcvbate.asp", false
-                "Actions/Certificate/Cerdfdftificate.asp", false
-                "Actions/Certificate/Certhhdfgificate.asp", false
-                "Actions/Certificate/Cfddertificate.asp", false
-                "Actions/Certificate/Cedffdrtificate.asp", false
-                "Actions/Certificate/Cefgdftificate.asp", false
-                "Actions/Certificate/Certificate.dfgasp", false
-                "Actions/Certificate/Certificate.asfdgp", false
-                "Actions/Certificate/Certificfdgdfate.asp", false
-                "Actions/Certificate/Certificadfgdfte.asp", false
-                "Actions/Certificate/Certiffgfdicate.asp", false
-                "Actions/Certificate/Certificdfgdfate.asp", false
-                "Actions/Certificate/Certificate.dfgasp", false
-                "Actions/Certificate/Certificate.asdfgdfp", false
-                "Actions/Certificate/Certificfdgate.asp", false
-                "Actions/Certificate/Certificdfgdfgate.asp", false
                 "Actions/Certificate/Certigdfgdfficate.asp", false
                 "Actions/Certificate/Certdgdfificate.asp", false
                 "Actions/Certificate/Certififdscate.asp", false
