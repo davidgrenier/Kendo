@@ -454,15 +454,10 @@ module Column =
                             let format = "<input data-bind='value:" + options?field + "'/>"
                             let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
                             DropDown.createFromElement target "" choices
-//                            ui.DropDownList.Create(As target, DropDown.configure "" choices)
-//                            |> ignore
-
                         column.filterable <-
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
-                                filterSettings.ui <- fun input ->
-                                    DropDown.createFromElement "" choices input
-//                                    ui.DropDownList.Create(input, DropDown.configure "" choices)
+                                filterSettings.ui <- DropDown.createFromElement "" choices
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
