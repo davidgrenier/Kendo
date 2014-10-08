@@ -457,7 +457,7 @@ module Column =
                         column.filterable <-
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
-                                filterSettings.ui <- DropDown.createFromElement "" choices
+                                filterSettings.ui <- fun target -> DropDown.createFromElement target "" choices
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
