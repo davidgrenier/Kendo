@@ -658,13 +658,16 @@ module Grid =
 
         gconf
 
-    let missingFrom second =
+    let differentOf second f =
         let originalKeys =
             second
             |> Array.map (fun x -> x?uid)
             |> Set.ofArray
 
-        Array.filter (fun x -> originalKeys.Contains x?uid |> not)
+        Array.filter (fun x -> originalKeys.Contains x?uid |> f)
+
+    let missingFrom second = differentOf second not
+    let presentIn second = differentOf second id
 
     let applyToolButtons getData (onGrid: (ui.Grid.T -> _) -> _) clear =
         let sourceData = ref [||]
@@ -695,6 +698,7 @@ module Grid =
                     |> Array.Do gridActions.Deleted
 
                     data
+                    |> presentIn !sourceData
                     |> Array.filter (fun x -> x?dirty = true)
                     |> Array.Do gridActions.Changed
 
