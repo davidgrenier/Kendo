@@ -274,7 +274,6 @@ module DataSource =
             data.[i] <- As v
         )
 
-        dataSource.TriggerUnsaved()
         dataSource.DataSource.fetch()
 
 module Filter =
@@ -700,8 +699,8 @@ module Grid =
 
                     sourceData := Array.copy data
 
-                    clear ()
                     grid.dataSource.sync()
+                    clear ()
                 )
             )
         )
@@ -805,6 +804,10 @@ module Grid =
                 )
 
             onGrid (checkboxDisplayFix el)
+            onGrid (fun (grid:ui.Grid.T) -> 
+                grid.dataSource.bind ("change", (fun e -> trigger ()) |> As )|> ignore
+            )
+            
         )
 
     module Piglet =
