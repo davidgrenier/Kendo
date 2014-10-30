@@ -816,7 +816,7 @@ module Grid =
                     | _ ->
                         grid.dataSource.data ()
                         |> As
-                        |> Array.tryFind (fun x -> not (x?isNew ()))
+                        |> Array.tryFind (fun x -> x?dirty || not (x?isNew ()))
                         |> Option.iter (fun _ -> trigger ())
                 ) |> As )|> ignore
             )
