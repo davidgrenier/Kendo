@@ -730,6 +730,7 @@ module Grid =
 
             target?Alive <- ele?target?``checked``
             target?dirty <- true
+            grid.dataSource.trigger("change") |> ignore
 
             true
         )
