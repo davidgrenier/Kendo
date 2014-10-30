@@ -809,7 +809,16 @@ module Grid =
 
             onGrid (checkboxDisplayFix el)
             onGrid (fun (grid:ui.Grid.T) -> 
-                grid.dataSource.bind ("change", (fun e -> trigger ()) |> As )|> ignore
+                grid.dataSource.bind ("change", (fun e ->
+                    match e?action with
+                    | "remove"
+                    | "add" -> trigger ()
+                    | _ ->
+                        grid.dataSource.data ()
+                        |> As
+                        |> Array.tryFind (fun x -> not (x?isNew ()))
+                        |> Option.iter (fun _ -> trigger ())
+                ) |> As )|> ignore
             )
             
         )
