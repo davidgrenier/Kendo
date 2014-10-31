@@ -716,7 +716,8 @@ module Grid =
         let gridElem = JQuery.JQuery.Of(element.Dom)
 
         gridElem.On("click", fun ele ->
-            if ele?target?className = "k-edit-cell" && ele?target?lastChild?``type`` = "checkbox" then
+            let className:string = ele?target?className |> As 
+            if className.Contains "k-edit-cell" && ele?target?lastChild?``type`` = "checkbox" then
                 grid.closeCell()
                 false
             else true

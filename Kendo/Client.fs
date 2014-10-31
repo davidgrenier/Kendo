@@ -168,8 +168,8 @@ let philoGrid data =
         C.field "LastName" "Last Name" |> C.width 170
         C.numeric "Age" "Age" |> C.width 120
         C.date "Died" "Died On" |> C.shortDateFormat |> C.width 180
-        C.bool "Alive" "Alive" |> C.width 100
-        C.bool "Alive2" "Alive2" |> C.width 100 |> C.readonly 
+        C.bool "Alive" "Alive" |> C.width 100 |> C.centered
+        C.bool "Alive2" "Alive2" |> C.width 100 |> C.centered |> C.readonly
         C.editor "Test" "Test" [
             "", "Select..."
             "House", "House"
