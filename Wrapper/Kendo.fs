@@ -252,6 +252,7 @@ module DataSource =
     let internal create dataSource trigger = { DataSource = dataSource; CurrentRow = None; TriggerUnsaved = trigger }
     let internal withRow row dataSource = { dataSource with CurrentRow = Some row }
     let internal getData (dataSource: data1.DataSource.T) = dataSource.data() |> As<data1.Model.T[]>
+    let internal values dataSource = getData dataSource |> As<_>
 
     let saveChange (dataSource: T<'a>) (value: 'a) =
         let data = getData dataSource.DataSource
@@ -271,7 +272,7 @@ module DataSource =
         )
         |> Option.iter (fun i ->
             v.dirty <- true
-            data.[i] <- As v
+            data.[i] <- v
         )
 
         dataSource.DataSource.fetch()
@@ -427,7 +428,7 @@ module Column =
                 | Some false, _ | None, false -> "disabled='disabled'"
                 | _ -> ""
 
-            "<input class='k-checkbox' type='checkbox' " + checkd + " " + editable + " />"
+            "<input class='k-checkbox' name='" + name + "' type='checkbox' " + checkd + " " + editable + " />"
         )
 
     let createSchema columns editable =
@@ -670,7 +671,7 @@ module Grid =
 
     let applyToolButtons getData (onGrid: (ui.Grid.T -> _) -> _) clear =
         let sourceData = ref [||]
-        onGrid(fun grid -> sourceData := grid.dataSource.data() |> As |> Array.copy)
+        onGrid(fun grid -> sourceData := DataSource.values grid.dataSource |> Array.copy)
 
         Seq.tryPick (function
             | Save x -> Some x
@@ -683,11 +684,11 @@ module Grid =
                     |> grid.dataSource.data
 
                     clear ()
-                    sourceData := grid.dataSource.data() |> As |> Array.copy
+                    sourceData := DataSource.values grid.dataSource |> Array.copy
                 )
 
                 grid?saveChanges <- (fun () ->
-                    let data = grid.dataSource.data() |> As
+                    let data = DataSource.values grid.dataSource
                     data
                     |> missingFrom !sourceData
                     |> Array.Do gridActions.Added
@@ -698,7 +699,7 @@ module Grid =
 
                     data
                     |> presentIn !sourceData
-                    |> Array.filter (fun x -> x?dirty = true)
+                    |> Array.filter (fun x -> x?dirty)
                     |> Array.Do gridActions.Changed
 
                     sourceData := Array.copy data
@@ -713,25 +714,27 @@ module Grid =
     type Test = { data: obj; pageSize: float; schema: Schema }
 
     let checkboxDisplayFix (element: Element) (grid: ui.Grid.T) =
-        let gridElem = JQuery.JQuery.Of(element.Dom)
+        let gridElem = JQuery.JQuery.Of element.Dom
 
-        gridElem.On("click", fun ele ->
-            let className:string = ele?target?className |> As 
-            if className.Contains "k-edit-cell" && ele?target?lastChild?``type`` = "checkbox" then
+        gridElem.On("click", fun event ->
+            let target = event?target
+            if (target?className : string).Contains "k-edit-cell" && target?lastChild?``type`` = "checkbox" then
                 grid.closeCell()
                 false
             else true
         )
 
-        gridElem.On("click" , ".k-checkbox", fun ele ->
+        gridElem.On("click" , ".k-checkbox", fun event ->
+            let dom = event?target : Dom.Node
             let target =
-                JQuery.JQuery.Of(ele?target: Dom.Node).Closest("TR")
+                JQuery.JQuery.Of(dom).Closest "TR"
                 |> As<TypeScript.Lib.Element>
                 |> grid.dataItem
 
-            target?Alive <- ele?target?``checked``
+            (?<-) target dom?name dom?``checked``
+
             target?dirty <- true
-//            grid.dataSource.trigger("change") |> ignore
+            grid.dataSource.trigger("change") |> ignore
 
             true
         )
@@ -804,23 +807,25 @@ module Grid =
 
                         let dataSource = DataSource.create grid.dataSource trigger
 
-                        addButton.Bind("click", As (fun () -> onClickAction dataSource (As item)))
+                        addButton.Bind("click", fun _ _ -> onClickAction dataSource (As item))
                         |> ignore
                     )
                 )
-
+            
             onGrid (checkboxDisplayFix el)
             onGrid (fun (grid:ui.Grid.T) -> 
-                grid.dataSource.bind ("change", (fun e ->
-                    match e?action with
-                    | "remove"
-                    | "add" -> trigger ()
-                    | _ ->
-                        grid.dataSource.data ()
-                        |> As
-                        |> Array.tryFind (fun x -> x?dirty || not (x?isNew ()))
-                        |> Option.iter (fun _ -> trigger ())
-                ) |> As )|> ignore
+                grid.dataSource.bind ("change", As (fun e ->
+                        match e?action with
+                        | "remove"
+                        | "add" -> trigger ()
+                        | _ ->
+                            grid.dataSource
+                            |> DataSource.getData
+                            |> Array.tryFind (fun x -> x.dirty || not (x.isNew()))
+                            |> Option.iter (fun _ -> trigger ())
+                    )
+                )
+                |> ignore
             )
             
         )
