@@ -201,7 +201,7 @@ let philoGrid data =
     |> G.withMenu
     |> G.filterable
     |> G.sortable
-    |> G.customAddButton (fun dataSource v -> 
+    |> G.customAddButton (fun dataSource -> 
         Popup.create "Edit Philosopher" (fun popup -> 
             editForm
                 (fun e -> DataSource.saveChange dataSource e; Popup.close popup)

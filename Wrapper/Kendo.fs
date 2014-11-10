@@ -495,7 +495,7 @@ module Grid =
         | Sizer of int
 
     type ToolButton<'V> =
-        | CustomCreate of (DataSource.T<'V> -> 'V -> unit)
+        | CustomCreate of (DataSource.T<'V> -> unit)
         | Create
         | Cancel
         | Save of SaveActions.T<'V>
@@ -800,14 +800,9 @@ module Grid =
                     onGrid (fun grid ->
                         let addButton = JQuery.JQuery.Of(el.Dom).Find ".addCustom"
 
-                        let item =
-                            JQuery.JQuery.Of(el?currentTarget: Dom.Node).Closest("TR").Get 0
-                            |> As<TypeScript.Lib.Element>
-                            |> grid.dataItem
-
                         let dataSource = DataSource.create grid.dataSource trigger
 
-                        addButton.Bind("click", fun _ _ -> onClickAction dataSource (As item))
+                        addButton.Bind("click", fun _ _ -> onClickAction dataSource)
                         |> ignore
                     )
                 )
