@@ -877,7 +877,9 @@ module DatePicker =
                     | _ -> ()
                 )
                 |> ignore
-                option.change <- fun _ -> (As<EcmaScript.Date> option.value).ToDotNet() |> Success |> stream.Trigger
+                option.change <- fun evt ->
+                    let newValue = evt.sender.value() |> As<EcmaScript.Date>
+                    newValue.ToDotNet() |> Success |> stream.Trigger
                 ui.DatePicker.Create(As input.Body, option)
                 |> ignore
             Input []
