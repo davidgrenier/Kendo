@@ -171,7 +171,7 @@ let myDatePicker() =
             |> dateStream.Trigger
     } |> Async.Start
 
-    DatePicker.create dateStream
+    DatePicker.create LongDate dateStream
 
 let philoGrid data =
     G.Default [

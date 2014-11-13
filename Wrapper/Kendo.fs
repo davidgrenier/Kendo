@@ -849,13 +849,19 @@ module Grid =
             |> Reader.Map (fun f -> f >> function Success xs -> xs | Failure _ -> [||])
             |> render <| config
 
+type DateFormat = LongDate | ShortDate
+
 module DatePicker =
     open IntelliFactory.WebSharper.Piglets
 
     module Piglet =
-        let create (stream: Stream<System.DateTime>) =
+        let formatDate = function
+            | LongDate -> "yyyy/MM/dd HH:mm"
+            | ShortDate -> "yyyy/MM/dd"
+
+        let create format (stream: Stream<System.DateTime>) =
             let apply (input: Element) =
-                let option = ui.DatePickerOptions(format = "yyyy/MM/dd HH:mm")
+                let option = ui.DatePickerOptions(format = formatDate format)
                 stream.Subscribe (
                     let last = ref None
                     function
@@ -877,9 +883,9 @@ module DatePicker =
             Input []
             |>! OnAfterRender apply
 
-    let create date =
+    let create format date =
         Stream(Success date)
-        |> Piglet.create
+        |> Piglet.create format
 
 module Piglets =
     module DatePicker =
