@@ -860,7 +860,8 @@ module DatePicker =
             | ShortDate -> "yyyy/MM/dd"
 
         let create format (stream: Stream<System.DateTime>) =
-            let apply (input: Element) =
+            Input []
+            |>! OnAfterRender (fun input ->
                 let option = ui.DatePickerOptions(format = formatDate format)
                 stream.Subscribe (
                     let last = ref None
@@ -882,12 +883,32 @@ module DatePicker =
                     newValue.ToDotNet() |> Success |> stream.Trigger
                 ui.DatePicker.Create(As input.Body, option)
                 |> ignore
-            Input []
-            |>! OnAfterRender apply
+            )
 
     let create format date =
         Stream(Success date)
         |> Piglet.create format
+
+module Numeric =
+    open IntelliFactory.WebSharper.Piglets
+
+    module Piglet =
+        let create format decimals min max step (stream: Stream<decimal>) =
+            Input[]
+            |>! OnAfterRender (fun input ->
+                let option = ui.NumericTextBoxOptions(format = format, decimals = float decimals)
+                min |> Option.iter (fun x -> option.min <- x)
+                max |> Option.iter (fun x -> option.max <- x)
+                step |> Option.iter (fun x -> option.step <- x)
+
+                ui.NumericTextBox.Create(As input.Body, option)
+                |> ignore
+            )
+
+        let integer = create "n0" 0 None None None
+        let currency = create "c" 3 None None None
+        let decimal = create "n2" 2 None None None
+        let percent = create "p0" 0 (Some 0.0) (Some 1.0) (Some 0.01)
 
 module Piglets =
     module DatePicker =
