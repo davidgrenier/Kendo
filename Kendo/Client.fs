@@ -4,8 +4,9 @@ module Kendo.Client
 open IntelliFactory.WebSharper
 open IntelliFactory.WebSharper.Html
 open IntelliFactory.WebSharper.EcmaScript
-open IntelliFactory.WebSharper.Piglets
+open IntelliFactory.WebSharper
 open WebSharper.Kendo
+open Piglets
 
 module C = Column
 module G = Grid
@@ -158,6 +159,20 @@ let editForm onSubmit content =
         ]
     )
 
+let myDatePicker() =
+    let date = Data.rightNow() |> ref
+    let dateStream = Stream(Success !date)
+    async {
+        while true do
+            do! Async.Sleep 2000
+            date := !date |> Data.nextDay
+            !date
+            |> Success
+            |> dateStream.Trigger
+    } |> Async.Start
+
+    DatePicker.create dateStream
+
 let philoGrid data =
     G.Default [
         C.delete() |> C.width 120 |> C.frozen
@@ -202,7 +217,7 @@ let philoGrid data =
     |> G.filterable
     |> G.sortable
     |> G.customAddButton (fun dataSource -> 
-        Popup.create "Edit Philosopher" (fun popup -> 
+        Popup.create "Edit Philosopher" (fun popup ->
             editForm
                 (fun e -> DataSource.saveChange dataSource e; Popup.close popup)
                 {
@@ -344,20 +359,6 @@ let notification () =
         content.Trigger(Result.Failwith "dichlorodiphenyltrichloroethane")
     } |> Async.Start
     Notification.create content
-
-let myDatePicker() =
-    let date = Data.rightNow() |> ref
-    let dateStream = Stream(Success !date)
-    async {
-        while true do
-            do! Async.Sleep 2000
-            date := !date |> Data.nextDay
-            !date
-            |> Success
-            |> dateStream.Trigger
-    } |> Async.Start
-
-    DatePicker.Piglet.create dateStream
 
 let page() =
     notification()

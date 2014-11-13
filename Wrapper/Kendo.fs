@@ -186,13 +186,16 @@ module Popup =
                 modal = config.Modal
             )
 
-        let body = config.Content(popup).Body
-        w := ui.Window.Create(As body, windowConfig)|> Some
+        config.Content popup
+        |>! OnAfterRender (fun elem ->
+            w := ui.Window.Create(As elem.Body, windowConfig) |> Some
 
-        actOn (fun w ->
-            w.bind("activate", As w.center) |> ignore
-            w._open() |> ignore
-        ) popup
+            actOn (fun w ->
+                w.bind("activate", As w.center) |> ignore
+                w._open() |> ignore
+            ) popup
+        )
+        |> fun e -> e?Render()
 
 module SaveActions =
     type T<'V> =
@@ -851,8 +854,7 @@ module DatePicker =
 
     module Piglet =
         let create (stream: Stream<System.DateTime>) =
-            Input []
-            |>! OnAfterRender (fun input ->
+            let apply (input: Element) =
                 let option = ui.DatePickerOptions(format = "yyyy/MM/dd HH:mm")
                 stream.Subscribe (
                     let last = ref None
@@ -862,7 +864,7 @@ module DatePicker =
                         | Some v when v = value -> ()
                         | _ ->
                             Option.ofNull value
-                            |>! fun x -> last := x
+                            |>! last.set_Value
                             |> Option.map (fun v -> v.ToEcma() |> As)
                             |> Option.toNull
                             |> fun x -> option.value <- x
@@ -872,11 +874,16 @@ module DatePicker =
                 option.change <- fun _ -> (As<EcmaScript.Date> option.value).ToDotNet() |> Success |> stream.Trigger
                 ui.DatePicker.Create(As input.Body, option)
                 |> ignore
-            )
+            Input []
+            |>! OnAfterRender apply
 
     let create date =
         Stream(Success date)
         |> Piglet.create
+
+module Piglets =
+    module DatePicker =
+        let create = DatePicker.Piglet.create
 
 module TreeView =
     type Content<'T> =
@@ -914,7 +921,7 @@ module TreeView =
 
         let rec buildDataSource data =
             data
-            |> List.map (fun x ->
+            |> Seq.map (fun x ->
                 match x.Value with
                 | Children nodes ->
                     {
