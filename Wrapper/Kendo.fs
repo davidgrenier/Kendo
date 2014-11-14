@@ -889,17 +889,35 @@ module DatePicker =
         Stream(Success date)
         |> Piglet.create format
 
-module Numeric =
-    open IntelliFactory.WebSharper.Piglets
+module Piglets =
+    module DatePicker =
+        let create = DatePicker.Piglet.create
 
-    module Piglet =
+    module Numeric =
         let create format decimals min max step (stream: Stream<decimal>) =
             Input[]
             |>! OnAfterRender (fun input ->
-                let option = ui.NumericTextBoxOptions(format = format, decimals = float decimals)
+                let option = ui.NumericTextBoxOptions(format = format, decimals = float decimals, spinners = false)
                 min |> Option.iter (fun x -> option.min <- x)
                 max |> Option.iter (fun x -> option.max <- x)
                 step |> Option.iter (fun x -> option.step <- x)
+                
+                stream.Subscribe (
+                    let last : decimal ref = ref (EcmaScript.Number().ToDotNet())
+                    function
+                    | Success value when !last = value -> ()
+                    | Success value ->
+                        value
+                        |>! last.set_Value
+                        |> float
+                        |> fun x -> option.value <- x
+                    | _ -> ()
+                )
+                |> ignore
+
+                option.change <- fun evt ->
+                    let value : decimal = evt.sender.value().ToEcma().ToDotNet()
+                    Success value |> stream.Trigger
 
                 ui.NumericTextBox.Create(As input.Body, option)
                 |> ignore
@@ -908,11 +926,7 @@ module Numeric =
         let integer = create "n0" 0 None None None
         let currency = create "c" 3 None None None
         let decimal = create "n2" 2 None None None
-        let percent = create "p0" 0 (Some 0.0) (Some 1.0) (Some 0.01)
-
-module Piglets =
-    module DatePicker =
-        let create = DatePicker.Piglet.create
+        let percent = create "p0" 2 (Some 0.0) (Some 1.0) (Some 0.01)
 
 module TreeView =
     type Content<'T> =
