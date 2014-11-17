@@ -76,36 +76,72 @@ module DropDown =
         |> List.map (fun (k, l) -> { value = k; text = l })
         |> List.toArray
 
-    let private configure v choices =
-        let values = buildDataSource choices
-        let i = List.findIndex (fun (x, _) -> x = v) choices
-        ui.DropDownListOptions(dataTextField = "text", dataValueField = "value", dataSource = values, index = float i)
+    module Piglets =
+        let private configure (stream: Stream<_>) choices =
+            ui.DropDownListOptions(
+                dataTextField = "text",
+                dataValueField = "value",
+                dataSource = buildDataSource choices,
+                change = fun p ->
+                    let i : int = p.sender?selectedIndex
+                    choices.[i] |> fst |> Success |> stream.Trigger
+            )
+            |>! fun opt ->
+                stream.Subscribe(
+                    let current = ref None
+                    function
+                    | Success v when !current <> Some v ->
+                        current := Some v
+                        let i = List.findIndex (fun (x, _) -> x = v) choices
+                        opt.index <- float i
+                    | _ -> ()
+                )
+                |> ignore
 
-    let private configureMulti (stream: Stream<_>) choices =
-        let values =
-            choices
-            |> List.mapi (fun i (_, label) -> i, label)
-            |> buildDataSource
-        let value =
-            match stream.Latest with
-            | Success x -> x |> Array.choose (fun y -> choices |> List.tryFindIndex (fun (choice, _) -> choice = y))
-            | Failure _ -> [||]
-        let change = Array.map (fun i -> fst choices.[i]) >> Success >> stream.Trigger
-        ui.MultiSelectOptions(
-            dataTextField = "text",
-            dataValueField = "value",
-            dataSource = values,
-            value = value,
-            change = fun q -> q.sender.value() |> As |> change
-        )
+        let private configureMulti (stream: Stream<_>) choices =
+            let values =
+                choices
+                |> List.mapi (fun i (_, label) -> i, label)
+                |> buildDataSource
 
-    let private insertIntoElement create config =
-        Input[]
-        |>! OnAfterRender (fun el -> create(As el.Body, config) |> ignore)
-        
-    let createFromElement el current choices = ui.DropDownList.Create(As el, configure current choices) |> ignore
-    let create current choices = insertIntoElement ui.DropDownList.Create (configure current choices)
-    let multi stream choices = insertIntoElement ui.MultiSelect.Create (configureMulti stream choices)
+            let value =
+                match stream.Latest with
+                | Success x -> x |> Array.choose (fun y -> choices |> List.tryFindIndex (fun (choice, _) -> choice = y))
+                | Failure _ -> [||]
+
+            let change (evt: ui.MultiSelectChangeEvent) =
+                evt.sender.value()
+                |> As
+                |> Array.map (fun i -> fst choices.[i])
+                |> Success
+                |> stream.Trigger
+
+            ui.MultiSelectOptions(
+                dataTextField = "text",
+                dataValueField = "value",
+                dataSource = values,
+                value = value,
+                change = change
+            )
+
+        let multi stream choices =
+            Input[]
+            |>! OnAfterRender (fun el -> ui.MultiSelect.Create(As el.Body, configureMulti stream choices) |> ignore)
+
+        let createFromElement stream choices el =
+            ui.DropDownList.Create(As el, configure stream choices) |> ignore
+
+        let create stream choices =
+            Input[]
+            |>! OnAfterRender (fun el -> createFromElement stream choices el.Body)
+
+    let create current choices =
+        let stream = Stream(Success current)
+        Piglets.create stream choices
+
+    let createFromElement current choices el =
+        let stream = Stream(Success current)
+        Piglets.createFromElement stream choices el
         
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
@@ -452,15 +488,17 @@ module Column =
                     f.Template |> Option.iter (fun t -> column.template <- t f editable)
                     match f.Editor with
                     | [] -> ()
-                    | choices ->
+                    | (key,_) :: _ as choices ->
                         column.editor <- fun (container, options) ->
-                            let format = "<input data-bind='value:" + options?field + "'/>"
-                            let target = JQuery.JQuery.Of(format).AppendTo(As<JQuery.JQuery> container)
-                            DropDown.createFromElement target "" choices
+                            let elem =
+                                "<input data-bind='value:" + options?field + "'/>"
+                                |> JQuery.JQuery.Of
+                            elem.AppendTo(As<JQuery.JQuery> container)
+                            |> DropDown.createFromElement key choices
                         column.filterable <-
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
-                                filterSettings.ui <- fun target -> DropDown.createFromElement target "" choices
+                                filterSettings.ui <- DropDown.createFromElement "" (("", "") :: choices)
             | CommandButton (s, text, action) ->
                 let command =
                     ui.GridColumnCommandItem(name = text, click = As (fun e ->
@@ -866,15 +904,12 @@ module DatePicker =
                 stream.Subscribe (
                     let last = ref None
                     function
-                    | Success value ->
-                        match !last with
-                        | Some v when v = value -> ()
-                        | _ ->
-                            Option.ofNull value
-                            |>! last.set_Value
-                            |> Option.map (fun v -> v.ToEcma() |> As)
-                            |> Option.toNull
-                            |> fun x -> option.value <- x
+                    | Success v when !last <> Some v ->
+                        Option.ofNull v
+                        |>! last.set_Value
+                        |> Option.map (fun v -> v.ToEcma() |> As)
+                        |> Option.toNull
+                        |> fun x -> option.value <- x
                     | _ -> ()
                 )
                 |> ignore
@@ -892,6 +927,10 @@ module DatePicker =
 module Piglets =
     module DatePicker =
         let create = DatePicker.Piglet.create
+
+    module DropDown =
+        let multi stream choices = DropDown.Piglets.multi stream choices
+        let create stream choices = DropDown.Piglets.create stream choices
 
     module Numeric =
         let create format decimals min max step (stream: Stream<decimal>) =

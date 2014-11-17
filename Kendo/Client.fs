@@ -13,11 +13,6 @@ module G = Grid
 module M = Menu
 module V = Piglet.Validation
 
-module Option =
-    let toNull = function
-        | None -> null
-        | Some x -> x
-
 module String =
     let notBlank = function
         | null | "" -> None
@@ -31,8 +26,7 @@ type Philosopher =
         Age: int
         Died: Date
         Alive: bool
-        Test: string
-        Door: Data.Door
+        Door: string
     }
 
     static member ofPerson (p: Data.Philosopher) =
@@ -43,11 +37,11 @@ type Philosopher =
             Age = p.Age
             Died = p.Died |> Option.map (fun d -> d.ToEcma()) |> Option.toNull
             Alive = p.Alive
-            Test =
-                match p.Name with
-                | "Isaac" -> "House"
-                | _ -> "Card"
-            Door = p.Door
+            Door =
+                match p.Door with
+                | Data.Locked -> "Locked"
+                | Data.Open -> "Open"
+
         }
 
     static member toPerson p : Data.Philosopher =
@@ -58,7 +52,10 @@ type Philosopher =
             Age = p.Age
             Died = p.Died |> Option.ofNull |> Option.map (fun d -> d.ToDotNet())
             Alive = p.Alive
-            Door = Data.Open
+            Door =
+                match p.Door with
+                | "Locked" -> Data.Locked
+                | _ -> Data.Open
         }
 
 type CardType = MC | Visa
@@ -121,8 +118,8 @@ let paymentForm onSubmit content =
         ]
     )
 
-let editForm onSubmit content =
-    Piglet.Return (fun id name last age died ->
+let editForm onSubmit philo =
+    Piglet.Return (fun id name last age died door ->
         {
             Id = id
             Name = name
@@ -130,18 +127,18 @@ let editForm onSubmit content =
             Age = age
             Died = died
             Alive = true
-            Door = Data.Door.Open
-            Test = "Card"
+            Door = door
         }
     )
-    <*> Piglet.Yield content.Id
-    <*> Piglet.Yield content.Name
-    <*> Piglet.Yield content.LastName
-    <*> Piglet.Yield content.Age
-    <*> Piglet.Yield content.Died
+    <*> Piglet.Yield philo.Id
+    <*> Piglet.Yield philo.Name
+    <*> Piglet.Yield philo.LastName
+    <*> Piglet.Yield philo.Age
+    <*> Piglet.Yield philo.Died
+    <*> Piglet.Yield philo.Door
     |> Piglet.WithSubmit
     |> Piglet.Run onSubmit
-    |> Piglet.Render (fun id name last age died submit ->
+    |> Piglet.Render (fun id name last age died door submit ->
         Div [
             Controls.IntInput id
             |> Controls.WithLabel "Id"
@@ -154,6 +151,11 @@ let editForm onSubmit content =
             Br[]
             Controls.IntInput age
             |> Controls.WithLabel "Age"
+            Br[]
+            DropDown.create door [
+                "Open", "Open"
+                "Locked", "Locked"
+            ]
             Br[]
             Controls.Submit submit
         ]
@@ -175,9 +177,15 @@ let myDatePicker() =
 
 let philoGrid data =
     G.Default [
-        C.delete() |> C.width 120 |> C.frozen
+        C.delete() |> C.width 110 |> C.frozen
+        C.command "Edit" (fun dataSource v ->
+            Popup.create "Edit Philosopher" (fun popup -> 
+                editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v
+            )
+            |> Popup.show
+        ) |> C.width 90 |> C.frozen
         C.numeric "Id" "Id"
-            |> C.width 50 |> C.frozen
+            |> C.width 60 |> C.frozen
             |> C.filtered (Filter.lessThan 10)
         C.field "Name" "Name" |> C.width 170 |> C.readonly
         C.field "LastName" "Last Name" |> C.width 170
@@ -185,12 +193,10 @@ let philoGrid data =
         C.date "Died" "Died On" |> C.shortDateFormat |> C.width 180
         C.bool "Alive" "Alive" |> C.width 100 |> C.centered
         C.bool "Alive2" "Alive2" |> C.width 100 |> C.centered |> C.readonly
-        C.editor "Test" "Test" [
-            "", "Select..."
-            "House", "House"
-            "Card", "Card"
+        C.editor "Door" "Door" [
+            "Open", "Open"
+            "Locked", "Locked"
         ] |> C.width 150
-        C.field "Door" "Door" |> C.width 150
         C.command "Show JSON" (fun _ v ->
             Popup.create "Testing Window" (fun popup ->
                 Div [
@@ -204,13 +210,6 @@ let philoGrid data =
         )
         |> C.width 160
         |> C.centered
-        C.command "Edit" (fun dataSource v ->
-            Popup.create "Edit Philosopher" (fun popup -> 
-                editForm (fun e -> DataSource.saveChange dataSource e; Popup.close popup) v
-            )
-            |> Popup.show
-        )
-        |> C.width 160
     ]
     |> G.editable
     |> G.withMenu
@@ -227,8 +226,7 @@ let philoGrid data =
                     Age = 0
                     Died = EcmaScript.Date()
                     Alive = true
-                    Door = Data.Door.Open
-                    Test = "Card"
+                    Door = "Open"
                 }
         )
         |> Popup.show
@@ -297,16 +295,14 @@ let gridKind() =
     Piglet.Yield Editing
     |> Piglet.Render (fun kind ->
         Div [
-            Controls.Select kind [
+            DropDown.create kind [
                 Editing, "Editing"
                 Grouping, "Grouping"
             ]
 
             Div []
             |> Controls.Show kind (fun kind ->
-                let data =
-                    Data.getPhilosophers
-                    >> Seq.map Philosopher.ofPerson
+                let data = Data.getPhilosophers >> Seq.map Philosopher.ofPerson
                 
                 match kind with
                 | Editing -> [philoGrid data]

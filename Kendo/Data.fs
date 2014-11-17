@@ -3,7 +3,6 @@
 type Door =
     | Open
     | Locked
-    | ClosedBy of string
 
     with
         [<JS>]
@@ -11,7 +10,6 @@ type Door =
             match x with
             | Open -> "Open"
             | Locked -> "Locked"
-            | ClosedBy _ -> "Closed"
 
 let getCases<'t> () =
     Microsoft.FSharp.Reflection.FSharpType.GetUnionCases typeof<'t>
