@@ -261,21 +261,22 @@ module Schema =
     let typed typ schema = { schema with Type = typ }
 
     let create defaultEdit (schemas: (string * T) seq) =
-        let model = create<data1.DataSourceSchemaModel>()
+        let fields =
+            schemas
+            |> Seq.fold (fun schema (fieldName, { Editable = editable; Type = typ } ) ->
+                let typ =
+                    match typ with
+                    | String -> "string"
+                    | Number -> "number"
+                    | Date -> "date"
+                    | Bool -> "boolean"
+                let fieldType = { editable = defaultArg editable defaultEdit; ``type`` = typ }
+                (?<-) schema fieldName fieldType
+                schema
+            ) (obj())
 
-        schemas
-        |> Seq.fold (fun schema (fieldName, { Editable = editable; Type = typ } ) ->
-            let typ =
-                match typ with
-                | String -> "string"
-                | Number -> "number"
-                | Date -> "date"
-                | Bool -> "boolean"
-            let fieldType = { editable = defaultArg editable defaultEdit; ``type`` = typ }
-            (?<-) schema fieldName fieldType
-            schema
-        ) (obj())
-        |> model.set_fields
+        let model = create<data1.DataSourceSchemaModel>()
+        model.fields <- fields
 
         create<data1.DataSourceSchema>()
         |>! fun schema -> schema.model <- model
@@ -798,7 +799,7 @@ module Grid =
                     let stream = Stream(Success ())
                     let triggerFailure () = stream.Trigger(Result.Failwith "You have unsaved changes.")
                     let clear () = stream.Trigger(Success ())
-                    triggerFailure, clear, fun (node:Dom.Node) -> (render stream).Dom |> node.AppendChild |> ignore
+                    triggerFailure, clear, fun (node: Dom.Node) -> (render stream).Dom |> node.AppendChild |> ignore
                 )
                 |> Option.getOrElse (id, id, ignore)
 
@@ -905,11 +906,12 @@ module DatePicker =
                     let last = ref None
                     function
                     | Success v when !last <> Some v ->
-                        Option.ofNull v
-                        |>! last.set_Value
-                        |> Option.map (fun v -> v.ToEcma() |> As)
-                        |> Option.toNull
-                        |> fun x -> option.value <- x
+                        last := Option.ofNull v
+                        
+                        option.value <-
+                            !last
+                            |> Option.map (fun v -> v.ToEcma() |> As)
+                            |> Option.toNull
                     | _ -> ()
                 )
                 |> ignore
@@ -942,15 +944,13 @@ module Piglets =
                 step |> Option.iter (fun x -> option.step <- x)
                 
                 stream.Subscribe (
-                    let last : decimal ref = ref (EcmaScript.Number().ToDotNet())
+                    let last = ref (EcmaScript.Number().ToDotNet() : decimal)
                     function
+                    | Failure _ -> ()
                     | Success value when !last = value -> ()
                     | Success value ->
-                        value
-                        |>! last.set_Value
-                        |> float
-                        |> fun x -> option.value <- x
-                    | _ -> ()
+                        last := value
+                        option.value <- float !last
                 )
                 |> ignore
 
