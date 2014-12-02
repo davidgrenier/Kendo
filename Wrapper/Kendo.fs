@@ -452,6 +452,7 @@ module Column =
     let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
 
     let frozen x = mapSettings (fun s -> { s with Frozen = true }) x
+    let noWrap c = withClass "kendoGridColumnEllipsis" c
     let applySchema f = mapContent (fun c -> { c with Schema = f c.Schema })
     let editable c = applySchema Schema.editable c
     let readonly c = applySchema Schema.readonly c
@@ -1105,11 +1106,20 @@ type Position =
 type Visibility = AutoHide | CloseIcon
 
 module Tooltip =
-    let custom position shown permanent (text: string) (element: Element) =
+    let show (element: Element) (tt: ui.Tooltip.T) =
+        let id = element.Id
+        element
+        |> OnAfterRender (fun _ ->
+            JQuery.JQuery.Of("#" + id)
+            |> As
+            |> tt.show
+        )
+
+    let custom position (shown: _ -> unit) permanent addOptions (contentF: _ -> string) (element: Element) =
         let option =
             ui.TooltipOptions(
                 autoHide = (permanent <> CloseIcon),
-                content = As text,
+                content = As contentF,
                 position =
                     match position with
                     | Center -> "center"
@@ -1118,20 +1128,14 @@ module Tooltip =
                     | Top -> "top"
                     | Left -> "left"
             )
+            |> addOptions
+        
+        ui.Tooltip.Create(As element.Dom, option)
+        |> shown
 
-        let tt = ui.Tooltip.Create(As element.Dom, option)
-
-        if shown then
-            let id = element.Id
-            element
-            |> OnAfterRender (fun _ ->
-                JQuery.JQuery.Of("#" + id)
-                |> As
-                |> tt.show
-            )
-
-    let create text = custom Center false AutoHide text
-    let right text = custom Right false AutoHide text
+    let create (text: string) = custom Center ignore AutoHide id (fun _ -> text)
+    let right (text: string) = custom Right ignore AutoHide id (fun _ -> text)
+    let onEllipsis e = custom Right ignore AutoHide (fun x -> x.filter <- ".kendoGridColumnEllipsis"; x) (fun e -> e?target?context?textContent) e
 
 module Notification =
     open IntelliFactory.WebSharper.Piglets

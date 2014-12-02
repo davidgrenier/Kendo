@@ -188,7 +188,7 @@ let philoGrid data =
             |> C.width 60 |> C.frozen
             |> C.filtered (Filter.lessThan 10)
         C.field "Name" "Name" |> C.width 170 |> C.readonly
-        C.field "LastName" "Last Name" |> C.width 170
+        C.field "LastName" "Last Name" |> C.width 170 |> C.noWrap
         C.numeric "Age" "Age" |> C.width 120
         C.date "Died" "Died On" |> C.shortDateFormat |> C.width 180
         C.bool "Alive" "Alive" |> C.width 100 |> C.centered
@@ -241,6 +241,7 @@ let philoGrid data =
         >> SaveActions.withRenderUnsaved validationIcon
     )
     |> G.render data
+    |>! Tooltip.enableOnEllipsis()
 
 let dependentPhilo data =
     Piglet.YieldFailure()
