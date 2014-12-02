@@ -241,7 +241,7 @@ let philoGrid data =
         >> SaveActions.withRenderUnsaved validationIcon
     )
     |> G.render data
-    |>! Tooltip.enableOnEllipsis()
+    |>! Tooltip.onEllipsis
 
 let dependentPhilo data =
     Piglet.YieldFailure()
