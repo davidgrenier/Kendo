@@ -371,12 +371,19 @@ module Column =
             Filter: Filter.T option
         }
 
+    type CommandButton<'V> =
+        {
+            Text: string
+            OnclickAction: (DataSource.T<'V> -> 'V -> unit)
+            Template: ('V -> string) option
+        }
+
     type Settings = { Lockable: bool; Frozen: bool }
         with static member Default = { Lockable = true; Frozen = false }
 
     type Content<'V> =
         | Field of Settings * Field<'V>
-        | CommandButton of Settings * string * (DataSource.T<'V> -> 'V -> unit)
+        | CommandButton of Settings * CommandButton<'V>
 
     type Attribute = { ``class``: string }
 
@@ -410,7 +417,13 @@ module Column =
         |> create title
 
     let command label action =
-        CommandButton (Settings.Default, label, action)
+        CommandButton (Settings.Default,
+            {
+                Text = label
+                OnclickAction = action
+                Template = None
+            }
+        )
         |> create ""
 
     let delete() = command "destroy" (fun _ _ -> ())
@@ -420,11 +433,16 @@ module Column =
         | Field (s, c) -> { col with Content = Field (s, f c) }
         | CommandButton _ -> col
 
+    let private mapCommandContent f col =
+        match col.Content with
+        | Field _ -> col
+        | CommandButton (s, c) -> { col with Content = CommandButton (s, f c) }
+
     let private mapSettings f col =
         let content =
             match col.Content with
             | Field (s, c) -> Field (f s, c)
-            | CommandButton (s, n, a) -> CommandButton (f s, n, a)
+            | CommandButton (s, c) -> CommandButton (f s, c)
         { col with Content = content }
 
     let filtered filter = mapContent (fun x -> { x with Filter = Some filter })
@@ -438,6 +456,7 @@ module Column =
 
     let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
     let formatWith templateFunc = mapContent (fun c -> { c with Template = Some (fun _ _ -> templateFunc) })
+    let private formatCommandWith templateFunc = mapCommandContent (fun c -> { c with Template = Some templateFunc })
     let private dateString format = function
         | null -> ""
         | (value: string) -> Pervasives.toString(As<TypeScript.Lib.Date> value, format)
@@ -501,9 +520,9 @@ module Column =
                             ui.GridColumnFilterable()
                             |>! fun filterSettings ->
                                 filterSettings.ui <- DropDown.createFromElement "" (("", "") :: choices)
-            | CommandButton (s, text, action) ->
+            | CommandButton (s, c) ->
                 let command =
-                    ui.GridColumnCommandItem(name = text, click = As (fun e ->
+                    ui.GridColumnCommandItem(name = c.Text, click = As (fun e ->
                             onGrid (fun grid ->
                                 let item =
                                     JQuery.JQuery.Of(e?currentTarget: Dom.Node).Closest("TR").Get 0
@@ -516,10 +535,14 @@ module Column =
 
                                 item
                                 |> As
-                                |> action dataSource
+                                |> c.OnclickAction dataSource
                             )
                         )
                     )
+
+                c.Template
+                |> Option.iter (fun x -> command?template <- x)
+
                 ui.GridColumn(command = [|command|], lockable = s.Lockable, locked = s.Frozen)
 
         column.title <- col.Title
