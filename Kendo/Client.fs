@@ -198,7 +198,7 @@ let philoGrid data =
         C.numeric "Id" "Id"
             |> C.width 60 |> C.frozen
             |> C.filtered (Filter.lessThan 10)
-        C.field "Name" "Name" |> C.width 170 |> C.centered |> C.readonly |> C.formatWith template |> C.onClick modifyDataSource
+        C.field "Name" "Name" |> C.width 170 |> C.centered |> C.readonly |> C.templateWith template |> C.onClick modifyDataSource
         C.field "LastName" "Last Name" |> C.width 170 |> C.noWrap
         C.numeric "Age" "Age" |> C.width 120
         C.date "Died" "Died On" |> C.shortDateFormat |> C.width 180

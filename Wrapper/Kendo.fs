@@ -30,6 +30,10 @@ module Option =
 
     let getOrElse v opt = defaultArg opt v
 
+    let mapOrDefault f deflt = function
+        | Some v -> f v
+        | _ -> deflt
+
 module Array =
     let Do f = function
         | xs when Array.isEmpty xs -> ()
@@ -142,7 +146,7 @@ module DropDown =
     let createFromElement current choices el =
         let stream = Stream(Success current)
         Piglets.createFromElement stream choices el
-        
+
 module Tabs =
     type T = { Name: string; Content: unit -> Element }
 
@@ -376,7 +380,6 @@ module Column =
         {
             Text: string
             OnclickAction: (DataSource.T<'V> -> 'V -> unit)
-            Template: ('V -> string) option
         }
 
     type Settings = { Lockable: bool; Frozen: bool }
@@ -423,7 +426,6 @@ module Column =
             {
                 Text = label
                 OnclickAction = action
-                Template = None
             }
         )
         |> create ""
@@ -456,24 +458,30 @@ module Column =
         |> mapContent (fun c -> { c with Editor = choices })
 
     let width width col = { col with Width = Some width }
-    let withClass className col = { col with Attributes = Some ({ ``class`` = className }) }
+    let withClass className col = { col with Attributes = Some { ``class`` = className } }
 
-    let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
-    let formatWith templateFunc = mapContent (fun c -> { c with Template = Some (fun _ _ -> templateFunc) })
-    let onClick cb = mapContent (fun c -> { c with CallBack = Some cb })
-    let private formatCommandWith templateFunc = mapCommandContent (fun c -> { c with Template = Some templateFunc })
-    let private dateString format = function
-        | null -> ""
-        | (value: string) -> Pervasives.toString(As<TypeScript.Lib.Date> value, format)
-
-    let shortDateFormat x = formatWithf (fun f _ v -> Choice1Of2 <| dateString "d" ((?) v f.Field)) x
-    let longDateFormat x = formatWithf (fun f _ v -> Choice1Of2 <| dateString "D" ((?) v f.Field)) x
+    let private templateWithF templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
+    let templateWith templateFunc = templateWithF (fun _ _ -> templateFunc)
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
     let rightAligned x = withClass "gridNumericValue" x
     let centered x = withClass "gridCenteredValue" x
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
-    let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Choice1Of2 <| Pervasives.toString(((?) v f.Field: float), "p" + string precision))
+
+    let onClick callback = mapContent (fun c -> { c with CallBack = Some callback })
+
+    let private dateString format = function
+        | null -> ""
+        | (value: string) -> Pervasives.toString(As<TypeScript.Lib.Date> value, format)
+
+    let shortDateFormat x = templateWithF (fun f _ v -> Choice1Of2 (dateString "d" ((?) v f.Field))) x
+    let longDateFormat x = templateWithF (fun f _ v -> Choice1Of2 (dateString "D" ((?) v f.Field))) x
+
+    let percentFormat precision x =
+        rightAligned x
+        |> templateWithF (fun f _ v ->
+            Choice1Of2 (Pervasives.toString(((?) v f.Field: float), "p" + string precision))
+        )
 
     let frozen x = mapSettings (fun s -> { s with Frozen = true }) x
     let noWrap c = withClass "kendoGridColumnEllipsis" c
@@ -486,14 +494,14 @@ module Column =
     let bool name title =
         field name title
         |> typed Schema.Bool
-        |> formatWithf (fun f editable v ->
+        |> templateWithF (fun f editable v ->
             let checkd = if (?) v f.Field then "checked='checked'" else ""
             let editable =
                 match f.Schema.Editable, editable with
                 | Some false, _ | None, false -> "disabled='disabled'"
                 | _ -> ""
 
-            "<input class='k-checkbox' name='" + name + "' type='checkbox' " + checkd + " " + editable + " />" |> Choice1Of2
+            Choice1Of2 ("<input class='k-checkbox' name='" + name + "' type='checkbox' " + checkd + " " + editable + " />")
         )
 
     let createSchema columns editable =
@@ -512,14 +520,14 @@ module Column =
                 |>! fun column ->
                     f.Format |> Option.iter (fun e -> column.format <- e)
                     f.Template |> Option.iter (fun t ->
-                        column.template <- (fun x ->
+                        column.template <- fun x ->
                             match t f editable x with
                             | Choice1Of2 s -> s
-                            | Choice2Of2 e -> 
-                                match f.CallBack with
-                                | Some c -> (e -< [NewAttr "data-callbackid" (string index)]).Body?outerHTML
-                                | None -> e.Body?outerHTML
-                        )
+                            | Choice2Of2 e ->
+                                let callbackAttribute =
+                                    f.CallBack
+                                    |> Option.mapOrDefault (fun _ -> [NewAttr "data-callbackid" (string index)]) []
+                                (Div [e -< callbackAttribute]).Html
                     )
                     match f.Editor with
                     | [] -> ()
@@ -553,9 +561,6 @@ module Column =
                             )
                         )
                     )
-
-                c.Template
-                |> Option.iter (fun x -> command?template <- x)
 
                 ui.GridColumn(command = [|command|], lockable = s.Lockable, locked = s.Frozen)
 
@@ -819,8 +824,6 @@ module Grid =
             true
         )
 
-    let triggerChange = ref (fun () -> ())
-
     let render getData configuration =
         let config = getConfiguration configuration
         let getData = getData >> Seq.toArray
@@ -867,7 +870,9 @@ module Grid =
         Div []
         |>! OnAfterRender (fun el ->
             grid := ui.Grid.Create(As el.Dom, gridConfig) |> Some
-            
+
+            let jqDom = JQuery.JQuery.Of el.Dom
+
             match configuration with
             | Plain _ -> ()
             | WithToolbar (_, xs) ->
@@ -880,7 +885,7 @@ module Grid =
                 )
                 |> Option.iter (fun onClickAction ->
                     onGrid (fun grid ->
-                        let addButton = JQuery.JQuery.Of(el.Dom).Find ".addCustom"
+                        let addButton = jqDom.Find ".addCustom"
 
                         let dataSource = DataSource.create grid.dataSource trigger
 
@@ -888,10 +893,10 @@ module Grid =
                         |> ignore
                     )
                 )
-            
+
             onGrid (checkboxDisplayFix el)
 
-            onGrid (fun (grid:ui.Grid.T) -> 
+            onGrid (fun grid ->
                 grid.dataSource.bind ("change", As (fun e ->
                         match e?action with
                         | "remove"
@@ -910,35 +915,30 @@ module Grid =
                 config.Columns
                 |> Seq.mapi (fun i col ->
                     match col.Content with
-                    | Column.Field (s, f) -> 
-                        match f.CallBack with
-                        | Some cb -> Some (i, cb)
-                        | None -> None
-                    | x -> None
+                    | Column.Field (s, f) -> f.CallBack |> Option.map (fun cb -> i, cb)
+                    | _ -> None
                 )
                 |> Seq.choose id
                 |> Map.ofSeq
 
+            jqDom.On("click" , "[data-callbackid]", fun event ->
+                let jqTarget = JQuery.JQuery.Of (event?target : Dom.Node)
 
-            onGrid (fun (grid:ui.Grid.T) ->
-                let gridElem = JQuery.JQuery.Of(el.Dom)
-                gridElem.On("click" , "[data-callbackid]", fun event ->
-                    let dom = event?target : Dom.Node
-                    let el = event?target |> As<TypeScript.Lib.Element>
-                    let index = JQuery.JQuery.Of(dom).Data("callbackid")
-
-                    let changed = 
-                        JQuery.JQuery.Of(dom).Closest "TR"
+                let index = jqTarget.Data "callbackid" |> As<int>
+                        
+                onGrid (fun grid ->
+                    let changed =
+                        jqTarget.Closest "TR"
                         |> As<TypeScript.Lib.Element>
                         |> grid.dataItem
                         |> As
-                        |> callbacks.[index |> As int]
+                        |> callbacks.[index]
 
                     if changed then
                         grid.dataSource.data <| getData ()
-
-                    true
                 )
+
+                true
             )
         )
 
@@ -982,7 +982,7 @@ module DatePicker =
                     function
                     | Success v when !last <> Some v ->
                         last := Option.ofNull v
-                        
+
                         option.value <-
                             !last
                             |> Option.map (fun v -> v.ToEcma() |> As)
@@ -1017,7 +1017,7 @@ module Piglets =
                 min |> Option.iter (fun x -> option.min <- x)
                 max |> Option.iter (fun x -> option.max <- x)
                 step |> Option.iter (fun x -> option.step <- x)
-                
+
                 stream.Subscribe (
                     let last = ref (EcmaScript.Number().ToDotNet() : decimal)
                     function
@@ -1203,7 +1203,7 @@ module Tooltip =
                     | Left -> "left"
             )
             |> addOptions
-        
+
         ui.Tooltip.Create(As element.Dom, option)
         |> shown
 
