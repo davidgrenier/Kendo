@@ -461,7 +461,8 @@ module Column =
     let withClass className col = { col with Attributes = Some { ``class`` = className } }
 
     let private templateWithF templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
-    let templateWith templateFunc = templateWithF (fun _ _ -> templateFunc)
+    let elementTemplate templateFunc = templateWithF (fun _ _ -> templateFunc >> Choice2Of2)
+    let stringTemplate templateFunc = templateWithF (fun _ _ -> templateFunc >> Choice1Of2)
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
     let rightAligned x = withClass "gridNumericValue" x

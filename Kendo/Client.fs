@@ -175,13 +175,6 @@ let myDatePicker() =
 
     DatePicker.create LongDate dateStream
 
-let generateCustomButton text = A[Text text] -< [HRef "#"] |+ "k-button k-button-icontext" 
-
-let template row =
-    match row.Age with
-    | x when x < 60 -> Choice2Of2 <| generateCustomButton "young"
-    | _ -> Choice1Of2 "old"
-
 let modifyDataSource x =
     let newItem = {x with Age = 88} |> Philosopher.toPerson
     Data.actOnNow Data.Updated [|newItem|]
@@ -198,7 +191,15 @@ let philoGrid data =
         C.numeric "Id" "Id"
             |> C.width 60 |> C.frozen
             |> C.filtered (Filter.lessThan 10)
-        C.field "Name" "Name" |> C.width 170 |> C.centered |> C.readonly |> C.templateWith template |> C.onClick modifyDataSource
+        C.field "Name" "Name"
+            |> C.width 170
+            |> C.centered
+            |> C.readonly
+            |> C.elementTemplate (function
+                | { Age = age } when age < 60 -> A [Text "young"] -< [HRef "#"] |+ "k-button k-button-icontext"
+                | _ -> Span [Text "old"]
+            )
+            |> C.onClick modifyDataSource
         C.field "LastName" "Last Name" |> C.width 170 |> C.noWrap
         C.numeric "Age" "Age" |> C.width 120
         C.date "Died" "Died On" |> C.shortDateFormat |> C.width 180
