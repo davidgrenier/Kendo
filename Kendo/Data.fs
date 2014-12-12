@@ -43,6 +43,7 @@ let philosopher id name last age deathDate =
         Door = Locked
     }
 
+[<RPC>]
 let deadPhilo id name last age year month day = philosopher id name last age (Some(year, month, day))
 let philo id name last age = philosopher id name last age None
 
@@ -109,6 +110,11 @@ let actOn (action: Action) changes =
         | Updated ->
             philosophers := philosophers.Value.Add(x.Id, x)
     )
+
+[<RPC>]
+let actOnNow (action: Action) changes =
+    actOn action changes
+    true
 
 [<RPC>]
 let rightNow() = System.DateTime.Now

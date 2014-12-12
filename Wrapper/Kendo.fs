@@ -365,7 +365,8 @@ module Column =
         {
             Field: string
             Format: string option
-            Template: (Field<'V> -> bool -> 'V -> string) option
+            Template: (Field<'V> -> bool -> 'V -> Choice<string,Element>) option
+            CallBack: ('V -> bool) option
             Editor: (string * string) list
             Schema: Schema.T
             Filter: Filter.T option
@@ -409,6 +410,7 @@ module Column =
                 Field = name
                 Format = None
                 Template = None
+                CallBack = None
                 Editor = []
                 Schema = Schema.zero
                 Filter = None
@@ -427,6 +429,8 @@ module Column =
         |> create ""
 
     let delete() = command "destroy" (fun _ _ -> ())
+
+    let private mapColumn f col = f col
 
     let private mapContent f col =
         match col.Content with
@@ -456,19 +460,20 @@ module Column =
 
     let private formatWithf templateFunc = mapContent (fun c -> { c with Template = Some templateFunc })
     let formatWith templateFunc = mapContent (fun c -> { c with Template = Some (fun _ _ -> templateFunc) })
+    let onClick cb = mapContent (fun c -> { c with CallBack = Some cb })
     let private formatCommandWith templateFunc = mapCommandContent (fun c -> { c with Template = Some templateFunc })
     let private dateString format = function
         | null -> ""
         | (value: string) -> Pervasives.toString(As<TypeScript.Lib.Date> value, format)
 
-    let shortDateFormat x = formatWithf (fun f _ v -> dateString "d" ((?) v f.Field)) x
-    let longDateFormat x = formatWithf (fun f _ v -> dateString "D" ((?) v f.Field)) x
+    let shortDateFormat x = formatWithf (fun f _ v -> Choice1Of2 <| dateString "d" ((?) v f.Field)) x
+    let longDateFormat x = formatWithf (fun f _ v -> Choice1Of2 <| dateString "D" ((?) v f.Field)) x
 
     let formatField fmt = mapContent (fun c -> { c with Format = Some fmt })
     let rightAligned x = withClass "gridNumericValue" x
     let centered x = withClass "gridCenteredValue" x
     let currencyFormat x = rightAligned x |> formatField "{0:c}"
-    let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Pervasives.toString(((?) v f.Field: float), "p" + string precision))
+    let percentFormat precision x = rightAligned x |> formatWithf (fun f _ v -> Choice1Of2 <| Pervasives.toString(((?) v f.Field: float), "p" + string precision))
 
     let frozen x = mapSettings (fun s -> { s with Frozen = true }) x
     let noWrap c = withClass "kendoGridColumnEllipsis" c
@@ -488,7 +493,7 @@ module Column =
                 | Some false, _ | None, false -> "disabled='disabled'"
                 | _ -> ""
 
-            "<input class='k-checkbox' name='" + name + "' type='checkbox' " + checkd + " " + editable + " />"
+            "<input class='k-checkbox' name='" + name + "' type='checkbox' " + checkd + " " + editable + " />" |> Choice1Of2
         )
 
     let createSchema columns editable =
@@ -499,14 +504,23 @@ module Column =
         )
         |> Schema.create editable
 
-    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) trigger editable col =
+    let fromMapping (onGrid: (ui.Grid.T -> _) -> _) trigger editable index col =
         let column =
             match col.Content with
             | Field (s, f) ->
                 ui.GridColumn(field = f.Field, lockable = s.Lockable, locked = s.Frozen)
                 |>! fun column ->
-                    f.Format |> Option.iter (fun f -> column.format <- f)
-                    f.Template |> Option.iter (fun t -> column.template <- t f editable)
+                    f.Format |> Option.iter (fun e -> column.format <- e)
+                    f.Template |> Option.iter (fun t ->
+                        column.template <- (fun x ->
+                            match t f editable x with
+                            | Choice1Of2 s -> s
+                            | Choice2Of2 e -> 
+                                match f.CallBack with
+                                | Some c -> (e -< [NewAttr "data-callbackid" (string index)]).Body?outerHTML
+                                | None -> e.Body?outerHTML
+                        )
+                    )
                     match f.Editor with
                     | [] -> ()
                     | (key,_) :: _ as choices ->
@@ -668,7 +682,7 @@ module Grid =
         let config = getConfiguration configuration
         let columns =
             config.Columns
-            |> Seq.map (Column.fromMapping onGrid trigger config.Editable)
+            |> Seq.mapi (fun i col -> Column.fromMapping onGrid trigger config.Editable i col)
             |> Seq.toArray
 
         let gconf =
@@ -805,6 +819,8 @@ module Grid =
             true
         )
 
+    let triggerChange = ref (fun () -> ())
+
     let render getData configuration =
         let config = getConfiguration configuration
         let getData = getData >> Seq.toArray
@@ -851,7 +867,7 @@ module Grid =
         Div []
         |>! OnAfterRender (fun el ->
             grid := ui.Grid.Create(As el.Dom, gridConfig) |> Some
-
+            
             match configuration with
             | Plain _ -> ()
             | WithToolbar (_, xs) ->
@@ -874,6 +890,7 @@ module Grid =
                 )
             
             onGrid (checkboxDisplayFix el)
+
             onGrid (fun (grid:ui.Grid.T) -> 
                 grid.dataSource.bind ("change", As (fun e ->
                         match e?action with
@@ -888,7 +905,41 @@ module Grid =
                 )
                 |> ignore
             )
-            
+
+            let callbacks =
+                config.Columns
+                |> Seq.mapi (fun i col ->
+                    match col.Content with
+                    | Column.Field (s, f) -> 
+                        match f.CallBack with
+                        | Some cb -> Some (i, cb)
+                        | None -> None
+                    | x -> None
+                )
+                |> Seq.choose id
+                |> Map.ofSeq
+
+
+            onGrid (fun (grid:ui.Grid.T) ->
+                let gridElem = JQuery.JQuery.Of(el.Dom)
+                gridElem.On("click" , "[data-callbackid]", fun event ->
+                    let dom = event?target : Dom.Node
+                    let el = event?target |> As<TypeScript.Lib.Element>
+                    let index = JQuery.JQuery.Of(dom).Data("callbackid")
+
+                    let changed = 
+                        JQuery.JQuery.Of(dom).Closest "TR"
+                        |> As<TypeScript.Lib.Element>
+                        |> grid.dataItem
+                        |> As
+                        |> callbacks.[index |> As int]
+
+                    if changed then
+                        grid.dataSource.data <| getData ()
+
+                    true
+                )
+            )
         )
 
     module Piglet =
