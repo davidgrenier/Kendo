@@ -61,7 +61,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.KendoUI">
-      <HintPath>..\packages\WebSharper.KendoUI.2.5.114.0\lib\net40\IntelliFactory.WebSharper.KendoUI.dll</HintPath>
+      <HintPath>..\packages\WebSharper.KendoUI.2.5.130.0\lib\net40\IntelliFactory.WebSharper.KendoUI.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.Piglets">
