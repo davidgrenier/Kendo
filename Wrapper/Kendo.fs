@@ -707,8 +707,8 @@ module Grid =
 
         config.Paging
         |> Option.iter (function
-            | Paging x -> gconf.pageable <- As true
-            | Sizer x -> gconf.pageable <- ui.GridPageable(pageSizes = [|5; 10; 20; 30; 50; 75; 100|])
+            | Paging _ -> gconf.pageable <- As true
+            | Sizer _ -> gconf.pageable <- ui.GridPageable(pageSizes = [|5; 10; 20; 30; 50; 75; 100|])
         )
 
         config.Selectable
@@ -916,7 +916,7 @@ module Grid =
                 config.Columns
                 |> Seq.mapi (fun i col ->
                     match col.Content with
-                    | Column.Field (s, f) -> f.CallBack |> Option.map (fun cb -> i, cb)
+                    | Column.Field (_, f) -> f.CallBack |> Option.map (fun cb -> i, cb)
                     | _ -> None
                 )
                 |> Seq.choose id
@@ -1244,6 +1244,7 @@ module Notification =
         |> ignore
 
     let create reader = custom CloseIcon reader
+    let temporary reader = custom AutoHide reader
 
 module Culture =
     let french() = Pervasives.culture "fr-CA"

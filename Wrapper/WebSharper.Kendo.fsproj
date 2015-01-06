@@ -31,6 +31,7 @@
     <OutputPath>bin\</OutputPath>
     <DocumentationFile>
     </DocumentationFile>
+    <OtherFlags>--warnon:1182</OtherFlags>
   </PropertyGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '11.0'">

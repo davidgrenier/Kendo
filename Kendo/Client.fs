@@ -363,6 +363,7 @@ let errorIcon() =
 
 let notification () =
     let content = Stream(Success "anticonstitutionnellement")
+    
     async {
         do! Async.Sleep 2000
         content.Trigger(Result.Failwith "dichlorodiphenyltrichloroethane")

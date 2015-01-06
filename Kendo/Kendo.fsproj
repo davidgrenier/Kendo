@@ -31,8 +31,8 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>..\Host\Bin</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <OtherFlags>
-    </OtherFlags>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <NoWarn />
   </PropertyGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '11.0'">
