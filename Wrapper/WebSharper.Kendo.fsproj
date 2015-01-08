@@ -10,7 +10,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>7f28bfdf</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>e26d165d</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>pdbonly</DebugType>
@@ -62,11 +62,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.Piglets">
-      <HintPath>..\packages\WebSharper.Piglets.0.1.99.158\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
+      <HintPath>..\packages\WebSharper.Piglets.0.1.109.168\lib\net40\IntelliFactory.WebSharper.Piglets.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="IntelliFactory.WebSharper.TypeScript.Lib">
-      <HintPath>..\packages\WebSharper.TypeScript.Lib.2.5.40\lib\net40\IntelliFactory.WebSharper.TypeScript.Lib.dll</HintPath>
+      <HintPath>..\packages\WebSharper.TypeScript.Lib.2.5.46\lib\net40\IntelliFactory.WebSharper.TypeScript.Lib.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
@@ -75,11 +75,11 @@
     <Reference Include="System.Numerics" />
     <Reference Include="System.Web" />
   </ItemGroup>
-  <Import Project="..\packages\WebSharper.2.5.128.65\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.128.65\build\WebSharper.targets')" />
+  <Import Project="..\packages\WebSharper.2.5.134.72\build\WebSharper.targets" Condition="Exists('..\packages\WebSharper.2.5.134.72\build\WebSharper.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\WebSharper.2.5.128.65\build\WebSharper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WebSharper.2.5.128.65\build\WebSharper.targets'))" />
+    <Error Condition="!Exists('..\packages\WebSharper.2.5.134.72\build\WebSharper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WebSharper.2.5.134.72\build\WebSharper.targets'))" />
   </Target>
 </Project>
