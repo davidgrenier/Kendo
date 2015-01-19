@@ -1235,7 +1235,7 @@ module Notification =
             | Success content ->
                 notif.show(content, "info")
             | Failure content ->
-                let error = content |> List.map (fun x -> x.Message) |> String.concat ", "
+                let error = content |> List.map (fun x -> x.Message) |> String.concat "\n"
                 notif.show(error, "error")
 
             Q.Of("div.k-animation-container:has(div.k-notification)").Css("left", "50%").Css("transform", "translateX(-50%)")
