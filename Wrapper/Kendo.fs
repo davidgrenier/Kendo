@@ -10,11 +10,11 @@ open IntelliFactory.WebSharper.Piglets
 let create<'T>(): 'T = As<'T>(obj())
 
 module Option =
-    let condition test = function
+    let conditional test = function
         | x when test -> Some x
         | _ -> None
 
-    let conditional f x = condition (f x) x
+    let condition f x = conditional (f x) x
 
     let ofNull x =
         if x ==. JavaScript.Undefined then None
@@ -358,7 +358,7 @@ module Filter =
             | OtherThan v -> f name "neq" v
         )
         >> Seq.toArray
-        >> Option.conditional ((<>) [||])
+        >> Option.condition ((<>) [||])
         >> Option.map (fun filters ->
             create<data1.DataSourceFilters>()
             |>! fun fs -> fs.filters <- filters
