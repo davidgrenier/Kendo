@@ -370,6 +370,11 @@ let notification () =
     } |> Async.Start
     Notification.create content
 
+type TerstOption =
+    {
+        Enabled: bool
+    }
+
 let page() =
     notification()
 
@@ -418,5 +423,6 @@ let page() =
                 Div [] |> Controls.Show selected (fun y -> y |> Seq.map (fun m -> Text (string m)))
             ]
         )
-
+        Upload.createAsync false "Save"
     ]
+    

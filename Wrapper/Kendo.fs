@@ -1246,6 +1246,37 @@ module Notification =
     let create reader = custom CloseIcon reader
     let temporary reader = custom AutoHide reader
 
+module Upload =
+    type Async =
+        {
+            AutoUpload: bool
+            SaveUrl: string
+        }
+    type Config =
+        {
+            Async: Async
+        }
+
+    let private custom (asyncConfig: Async option) =
+        Input []
+        -- Attr.Type "file"
+        -- Attr.Id "files"
+        -- Attr.Name "files"
+        |>! OnAfterRender (fun el ->
+            let uploadConfig = IntelliFactory.WebSharper.KendoUI.ui.UploadOptions()
+            asyncConfig
+            |> Option.iter (fun config ->
+                let asyncConfig = IntelliFactory.WebSharper.KendoUI.ui.UploadAsync()
+                asyncConfig.autoUpload <- config.AutoUpload
+                asyncConfig.saveUrl <- config.SaveUrl
+                uploadConfig.async <- asyncConfig
+            )
+            IntelliFactory.WebSharper.KendoUI.ui.Upload.Create(As el.Body, uploadConfig) |> ignore
+        )
+
+    let create () = custom None
+    let createAsync autoUpload saveUrl = custom (Some { AutoUpload = autoUpload; SaveUrl = saveUrl})
+
 module Culture =
     let french() = Pervasives.culture "fr-CA"
     let english() = Pervasives.culture "en-CA"
