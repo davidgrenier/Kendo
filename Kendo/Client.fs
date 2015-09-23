@@ -423,6 +423,7 @@ let page() =
                 Div [] |> Controls.Show selected (fun y -> y |> Seq.map (fun m -> Text (string m)))
             ]
         )
-        Upload.createAsync false "Save"
+
+        Upload.create()//Async false "Save"
     ]
     

@@ -1274,7 +1274,17 @@ module Upload =
             IntelliFactory.WebSharper.KendoUI.ui.Upload.Create(As el.Body, uploadConfig) |> ignore
         )
 
-    let create () = custom None
+    let create () =
+        Form [
+            Div [
+                custom None
+                Input []
+                -- Attr.Type "submit"
+                -- Attr.Value "Submit"
+                |+ "k-button k-primary"
+            ]
+        ]
+
     let createAsync autoUpload saveUrl = custom (Some { AutoUpload = autoUpload; SaveUrl = saveUrl})
 
 module Culture =
