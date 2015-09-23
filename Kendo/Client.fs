@@ -370,11 +370,6 @@ let notification () =
     } |> Async.Start
     Notification.create content
 
-type TerstOption =
-    {
-        Enabled: bool
-    }
-
 let page() =
     notification()
 
