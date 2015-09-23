@@ -138,7 +138,7 @@ let editForm onSubmit philo =
     <*> Piglet.Yield philo.Door
     |> Piglet.WithSubmit
     |> Piglet.Run onSubmit
-    |> Piglet.Render (fun id name last age died door submit ->
+    |> Piglet.Render (fun id name last age _ door submit ->
         Div [
             Controls.IntInput id
             |> Controls.WithLabel "Id"

@@ -1252,35 +1252,24 @@ module Upload =
             AutoUpload: bool
             SaveUrl: string
         }
-    type Config =
-        {
-            Async: Async
-        }
 
     let private custom (asyncConfig: Async option) =
-        Input []
-        -- Attr.Type "file"
-        -- Attr.Id "files"
-        -- Attr.Name "files"
+        Input [Attr.Type "file"; Attr.Id "files"; Attr.Name "files"]
         |>! OnAfterRender (fun el ->
-            let uploadConfig = IntelliFactory.WebSharper.KendoUI.ui.UploadOptions()
+            let uploadConfig = ui.UploadOptions()
             asyncConfig
-            |> Option.iter (fun config ->
-                let asyncConfig = IntelliFactory.WebSharper.KendoUI.ui.UploadAsync()
-                asyncConfig.autoUpload <- config.AutoUpload
-                asyncConfig.saveUrl <- config.SaveUrl
-                uploadConfig.async <- asyncConfig
+            |> Option.iter (fun c ->
+                uploadConfig.async <- ui.UploadAsync(autoUpload = c.AutoUpload, saveUrl = c.SaveUrl)
             )
-            IntelliFactory.WebSharper.KendoUI.ui.Upload.Create(As el.Body, uploadConfig) |> ignore
+            ui.Upload.Create(As el.Body, uploadConfig)
+            |> ignore
         )
 
     let create () =
         Form [
             Div [
                 custom None
-                Input []
-                -- Attr.Type "submit"
-                -- Attr.Value "Submit"
+                Input [Attr.Type "submit"; Attr.Value "Submit"]
                 |+ "k-button k-primary"
             ]
         ]
