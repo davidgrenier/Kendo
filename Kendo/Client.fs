@@ -419,6 +419,24 @@ let page() =
             ]
         )
 
-        Upload.create()//Async false "Save"
+        Piglet.Return (fun supplier data -> (supplier, data))
+        <*> Piglet.Yield 0
+        <*> Piglet.YieldFailure ()
+        |> Piglet.Render (fun supplier data ->
+            data.Subscribe (function
+                | Success x -> JavaScript.Alert "Triggered!"
+                | _ -> ()
+            )
+            |> ignore
+            Div [
+                DropDown.create supplier [(0, "0"); (1, "1")]
+                Upload.Binary.create (fun reader _ ->
+                    let nastyArray = new Html5.Uint8Array(reader.Result)
+                    let cleanArray = Array.init nastyArray.Length (fun i -> nastyArray.Get i)
+                                
+                    Success cleanArray |> data.Trigger
+                )
+            ]
+        )
     ]
     

@@ -1250,31 +1250,65 @@ module Upload =
     type Async =
         {
             AutoUpload: bool
-            SaveUrl: string
+            SaveUrl: string option
         }
 
-    let private custom (asyncConfig: Async option) =
+    let private custom (asyncConfig: Async option) onUpload =
         Input [Attr.Type "file"; Attr.Id "files"; Attr.Name "files"]
         |>! OnAfterRender (fun el ->
             let uploadConfig = ui.UploadOptions()
+            onUpload
+            |> Option.iter (fun action ->
+                uploadConfig.upload <- action
+            )
             asyncConfig
             |> Option.iter (fun c ->
-                uploadConfig.async <- ui.UploadAsync(autoUpload = c.AutoUpload, saveUrl = c.SaveUrl)
+                let asyncConfig = ui.UploadAsync(autoUpload = c.AutoUpload)
+                c.SaveUrl
+                |> Option.iter (fun saveUrl -> asyncConfig.saveUrl <- saveUrl)
+
+                uploadConfig.async <- asyncConfig
             )
             ui.Upload.Create(As el.Body, uploadConfig)
             |> ignore
         )
 
-    let create () =
+    let private create selectAction =
         Form [
             Div [
-                custom None
+                custom None selectAction
                 Input [Attr.Type "submit"; Attr.Value "Submit"]
                 |+ "k-button k-primary"
             ]
         ]
 
-    let createAsync autoUpload saveUrl = custom (Some { AutoUpload = autoUpload; SaveUrl = saveUrl})
+    let private createAsync autoUpload = custom (Some { AutoUpload = autoUpload; SaveUrl = Some "default" })
+
+    module Binary =
+        let create f =
+            createAsync false (Some (fun e ->
+                e.preventDefault.call (e,null) |> ignore
+                e.files
+                |> As
+                |> Seq.iter (fun file ->
+                    let reader = Html5.BinaryFileReader()
+                    reader.Onloadend <- f reader
+                    reader.ReadAsArrayBuffer file?rawFile
+                )
+            ))
+
+    module Text =
+        let create f =
+            createAsync false (Some (fun e ->
+                e.preventDefault.apply e |> ignore
+                e.files
+                |> As
+                |> Seq.iter (fun file ->
+                    let reader = Html5.TextFileReader()
+                    reader.Onloadend <- f reader
+                    reader.ReadAsText file?rawFile
+                )
+            ))
 
 module Culture =
     let french() = Pervasives.culture "fr-CA"
