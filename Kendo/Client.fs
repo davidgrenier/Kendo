@@ -373,6 +373,8 @@ let notification () =
 let page() =
     notification()
 
+    let notificationStream = Stream(Failure []) |>! Notification.create
+
     Div [
         menu
         
@@ -424,17 +426,20 @@ let page() =
         <*> Piglet.YieldFailure ()
         |> Piglet.Render (fun supplier data ->
             data.Subscribe (function
-                | Success x -> JavaScript.Alert "Triggered!"
+                | Success (name, _) ->
+                    sprintf "Received file named %s" name
+                    |> Success
+                    |> notificationStream.Trigger
                 | _ -> ()
             )
             |> ignore
             Div [
                 DropDown.create supplier [(0, "0"); (1, "1")]
-                Upload.Binary.create (fun reader _ ->
+                Upload.Binary.create (fun reader file _ ->
                     let nastyArray = new Html5.Uint8Array(reader.Result)
                     let cleanArray = Array.init nastyArray.Length (fun i -> nastyArray.Get i)
                                 
-                    Success cleanArray |> data.Trigger
+                    Success (file?name, cleanArray) |> data.Trigger
                 )
             ]
         )

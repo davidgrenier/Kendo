@@ -1292,7 +1292,7 @@ module Upload =
                 |> As
                 |> Seq.iter (fun file ->
                     let reader = Html5.BinaryFileReader()
-                    reader.Onloadend <- f reader
+                    reader.Onloadend <- f reader file
                     reader.ReadAsArrayBuffer file?rawFile
                 )
             ))
@@ -1305,7 +1305,7 @@ module Upload =
                 |> As
                 |> Seq.iter (fun file ->
                     let reader = Html5.TextFileReader()
-                    reader.Onloadend <- f reader
+                    reader.Onloadend <- f reader file
                     reader.ReadAsText file?rawFile
                 )
             ))
