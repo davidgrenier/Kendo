@@ -435,12 +435,7 @@ let page() =
             |> ignore
             Div [
                 DropDown.create supplier [(0, "0"); (1, "1")]
-                Upload.Binary.create (fun reader file _ ->
-                    let nastyArray = new Html5.Uint8Array(reader.Result)
-                    let cleanArray = Array.init nastyArray.Length (fun i -> nastyArray.Get i)
-                                
-                    Success (file?name, cleanArray) |> data.Trigger
-                )
+                Upload.Binary.create data
             ]
         )
     ]
