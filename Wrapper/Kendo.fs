@@ -1247,58 +1247,33 @@ module Notification =
     let temporary reader = custom AutoHide reader
 
 module Upload =
-    type Async =
-        {
-            AutoUpload: bool
-            SaveUrl: string option
-        }
-
-    let private custom (asyncConfig: Async option) onUpload =
+    let private custom f =
         Input [Attr.Type "file"; Attr.Id "files"; Attr.Name "files"]
         |>! OnAfterRender (fun el ->
-            let uploadConfig = ui.UploadOptions()
-            onUpload
-            |> Option.iter (fun action ->
-                uploadConfig.upload <- action
-            )
-            asyncConfig
-            |> Option.iter (fun c ->
-                let asyncConfig = ui.UploadAsync(autoUpload = c.AutoUpload)
-                c.SaveUrl
-                |> Option.iter (fun saveUrl -> asyncConfig.saveUrl <- saveUrl)
+            let asyncConfig = ui.UploadAsync(autoUpload = false, saveUrl = "default")
+            let uploadConfig =
+                ui.UploadOptions(
+                    async = asyncConfig,
+                    upload = (fun e ->
+                        e.preventDefault.apply e |> ignore
+                        e.files
+                        |> As
+                        |> Seq.iter f
+                    )
 
-                uploadConfig.async <- asyncConfig
-            )
+                )
+
             ui.Upload.Create(As el.Body, uploadConfig)
             |> ignore
         )
 
-    let private create selectAction =
-        Form [
-            Div [
-                custom None selectAction
-                Input [Attr.Type "submit"; Attr.Value "Submit"]
-                |+ "k-button k-primary"
-            ]
-        ]
-
-    let private createAsync autoUpload = custom (Some { AutoUpload = autoUpload; SaveUrl = Some "default" })
-
-    let private createCustomAsync f =
-        createAsync false (Some (fun e ->
-            e.preventDefault.apply e |> ignore
-            e.files
-            |> As
-            |> Seq.iter f
-        ))
-
     module Binary =
         let create (stream: Stream<string * byte[]>) =
-            createCustomAsync (fun file ->
+            custom (fun file ->
                 let reader = Html5.BinaryFileReader()
                 reader.Onloadend <- (fun _ ->
                     let nastyArray = new Html5.Uint8Array(reader.Result)
-                    let cleanArray = Array.init nastyArray.Length (fun i -> nastyArray.Get i)
+                    let cleanArray = Array.init nastyArray.Length nastyArray.Get
                                 
                     Success (file?name, cleanArray) |> stream.Trigger
                 )
@@ -1307,7 +1282,7 @@ module Upload =
 
     module Text =
         let create (stream: Stream<string * string>) =
-            createCustomAsync (fun file ->
+            custom (fun file ->
                 let reader = Html5.TextFileReader()
                 reader.Onloadend <- (fun _ ->
                     Success (file?name, reader.Result) |> stream.Trigger

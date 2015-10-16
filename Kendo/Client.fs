@@ -424,18 +424,15 @@ let page() =
         Piglet.Return (fun supplier data -> (supplier, data))
         <*> Piglet.Yield 0
         <*> Piglet.YieldFailure ()
+        |> Piglet.Run (fun (_, (name, data)) ->
+            sprintf "Received file named %s %A" name data
+            |> Success
+            |> notificationStream.Trigger
+        )
         |> Piglet.Render (fun supplier data ->
-            data.Subscribe (function
-                | Success (name, _) ->
-                    sprintf "Received file named %s" name
-                    |> Success
-                    |> notificationStream.Trigger
-                | _ -> ()
-            )
-            |> ignore
             Div [
                 DropDown.create supplier [(0, "0"); (1, "1")]
-                Upload.Binary.create data
+                Upload.Text.create data
             ]
         )
     ]
