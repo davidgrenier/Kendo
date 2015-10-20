@@ -421,18 +421,28 @@ let page() =
             ]
         )
 
-        Piglet.Return (fun supplier data -> (supplier, data))
+        Piglet.Return (fun supplier (data: Map<_,_>) -> (supplier, data))
         <*> Piglet.Yield 0
         <*> Piglet.YieldFailure ()
-        |> Piglet.Run (fun (_, (name, data)) ->
-            sprintf "Received file named %s %A" name data
+        |> Piglet.WithSubmit
+        |> Piglet.Run (fun (supplier, fileList) ->
+            sprintf "Supplier is %d" supplier
             |> Success
             |> notificationStream.Trigger
+
+            fileList
+            |> Map.iter (fun fileName content ->
+                sprintf "Received file %s with content %A" fileName content
+                |> Success
+                |> notificationStream.Trigger
+            )
+
         )
-        |> Piglet.Render (fun supplier data ->
+        |> Piglet.Render (fun supplier data submit ->
             Div [
                 DropDown.create supplier [(0, "0"); (1, "1")]
                 Upload.Text.create data
+                Controls.SubmitValidate submit
             ]
         )
     ]

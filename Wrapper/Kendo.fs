@@ -1247,20 +1247,52 @@ module Notification =
     let temporary reader = custom AutoHide reader
 
 module Upload =
-    let private custom f =
+    let addFileToStream (stream: Stream<Map<_, _>>) fileName content =
+        match stream.Latest with
+        | Success fileList -> fileList.Add (fileName, content)
+        | Failure _ -> Map.ofList [fileName, content]
+        |> Success
+        |> stream.Trigger
+
+    let addAsByteArray (stream: Stream<Map<string, byte[]>>) file =
+        let reader = Html5.BinaryFileReader()
+        reader.Onloadend <- (fun _ ->
+            let nastyArray = new Html5.Uint8Array(reader.Result)
+            let cleanArray = Array.init nastyArray.Length nastyArray.Get
+            
+            addFileToStream stream file?name cleanArray
+        )
+        reader.ReadAsArrayBuffer file?rawFile
+
+    let addAsText (stream: Stream<Map<string, string>>) file =
+        let reader = Html5.TextFileReader()
+        reader.Onloadend <- (fun _ -> addFileToStream stream file?name reader.Result) 
+        reader.ReadAsText file?rawFile
+
+    let removeFromstream (stream: Stream<Map<_, _>>) file =
+        stream.Latest
+        |> Result.Map (fun fileList ->
+            fileList.Remove file?name
+        )
+        |> stream.Trigger
+
+    let private custom onSelect onRemove =
         Input [Attr.Type "file"; Attr.Id "files"; Attr.Name "files"]
         |>! OnAfterRender (fun el ->
-            let asyncConfig = ui.UploadAsync(autoUpload = false, saveUrl = "default")
+            let asyncConfig = ui.UploadAsync(autoUpload = false, saveUrl = "")
             let uploadConfig =
                 ui.UploadOptions(
                     async = asyncConfig,
-                    upload = (fun e ->
-                        e.preventDefault.apply e |> ignore
+                    _select = (fun e ->
                         e.files
                         |> As
-                        |> Seq.iter f
+                        |> Seq.iter onSelect
+                    ),
+                    remove = (fun e -> 
+                        e.files
+                        |> As
+                        |> Seq.iter onRemove
                     )
-
                 )
 
             ui.Upload.Create(As el.Body, uploadConfig)
@@ -1268,27 +1300,10 @@ module Upload =
         )
 
     module Binary =
-        let create (stream: Stream<string * byte[]>) =
-            custom (fun file ->
-                let reader = Html5.BinaryFileReader()
-                reader.Onloadend <- (fun _ ->
-                    let nastyArray = new Html5.Uint8Array(reader.Result)
-                    let cleanArray = Array.init nastyArray.Length nastyArray.Get
-                                
-                    Success (file?name, cleanArray) |> stream.Trigger
-                )
-                reader.ReadAsArrayBuffer file?rawFile
-            )
+        let create (stream: Stream<Map<string,byte[]>>) = custom (addAsByteArray stream) (removeFromstream stream)
 
     module Text =
-        let create (stream: Stream<string * string>) =
-            custom (fun file ->
-                let reader = Html5.TextFileReader()
-                reader.Onloadend <- (fun _ ->
-                    Success (file?name, reader.Result) |> stream.Trigger
-                )
-                reader.ReadAsText file?rawFile
-            )
+        let create (stream: Stream<Map<string,string>>) = custom (addAsText stream) (removeFromstream stream)
 
 module Culture =
     let french() = Pervasives.culture "fr-CA"
